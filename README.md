@@ -17,7 +17,7 @@ this directory somewhere).
 
 ### development
 
-run `pnpm run build` after changes to rebuild tailwind css and format.
+run `pnpm run build` after making viewr changes to rebuild tailwind css and format.
 
 ### todo
 
