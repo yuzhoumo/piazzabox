@@ -1,7 +1,9 @@
-# Piazzabox - Piazza Archive Viewer
+# Piazzabox
 
-archiver - forked from Ben Cuan, relies on piazza-api (unofficial)
-viewer - work in progress, renders archived json posts
+Piazza course archiver and viewer
+
+- archive: forked from Ben Cuan, relies on piazza-api (unofficial)
+- viewer: work in progress, renders archived json posts
 
 To use:
 
