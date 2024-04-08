@@ -1,11 +1,11 @@
 # Piazzabox
 
-Piazza course archiver and viewer
+Piazza course archiver and lightweight static viewer
 
 ![screenshot](screenshot.png)
 
 - archive: archive courses to json (forked from 64bitpandas)
-- viewer: renders archived piazza courses. Built with alpine.js + tailwind.
+- viewer: renders archived piazza courses. built with alpine.js + tailwind.
 
 Quick Start:
 
@@ -14,6 +14,8 @@ Quick Start:
 3. Run `python3 -m http.server` in the `viewer` directory (alternatively, host
 this directory somewhere).
 4. Go to `localhost:8000` in your favorite web browser.
+
+To regenerate optimized css: `npx tailwindcss -o assets/tailwind.css --minify`
 
 TODO:
 - support multiple posts.json
