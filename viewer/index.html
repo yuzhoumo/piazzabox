@@ -17,7 +17,7 @@
 			return (await (await fetch('/posts.json')).json()).posts;
 		}
 		const getFollowups = (followups) => {
-			return followups?.filter((followup) => (followup.type === "followup"))
+			return (followups ?? []).filter((followup) => (followup.type === "followup"))
 		}
 		</script>
 	</head>
@@ -34,14 +34,14 @@
 						x-data="{ h0: post.history[0] }"
 					>
 						<div class="flex justify-between pointer-events-none">
-							<h1
+							<span
 								class="text-sm font-bold"
 								x-html="marked.parse(h0.subject)"
-							></h1>
-							<p
+							></span>
+							<span
 								class="text-sm"
 								x-text="formatDate(h0.created)"
-							></p>
+							></span>
 						</div>
 						<div class="h-12 overflow-hidden pointer-events-none">
 							<span class="text-xs" x-html="marked.parse(h0.content)"></span>
@@ -52,8 +52,20 @@
 
 			<div class="bg-gray-900 h-[100vh] col-span-3 overflow-y-scroll">
 				<div class="bg-gray-800 p-8 mx-4 my-2 text-white border border-gray-700 rounded-lg space-y-6">
-					<div class="font-bold text-xl">
+					<div class="flex justify-between font-bold text-xl">
 						<span x-html="marked.parse(currentPost.history[0].subject)"></span>
+						<div class="flex space-x-4">
+							<div
+								class="bg-gray-700 py-1 px-3 rounded-md text-sm"
+								x-text="currentPost.type"
+								x-show="currentPost?.type"
+							></div>
+							<div
+								class="bg-gray-700 py-1 px-2 rounded-md text-sm"
+								x-text="`${currentPost.unique_views} views`"
+								x-show="currentPost?.unique_views > 0"
+							></div>
+						</div>
 					</div>
 					<div class="overflow-x-scroll">
 						<span
@@ -62,16 +74,16 @@
 						></span>
 					</div>
 					<div class="text-xs">
-						<span x-text="`good note | ${currentPost.tag_good.length}`"></span>
+						<span x-text="`good note | ${(currentPost?.tag_good ?? []).length}`"></span>
 					</div>
 				</div>
 
 				<div
 					class="bg-gray-800 p-8 mx-4 my-2 text-white border border-gray-700 rounded-lg space-y-4"
-					x-show="getFollowups(currentPost.children).length > 0"
+					x-show="getFollowups(currentPost?.children).length > 0"
 				>
 					<h1 class="font-bold text-xl">followup discussions</h1>
-					<template x-for="followup in getFollowups(currentPost.children)" :key="followup.id">
+					<template x-for="followup in getFollowups(currentPost?.children)" :key="followup.id">
 
 						<div class="bg-gray-700 py-4 px-6 rounded-md">
 							<div class="space-y-1">
@@ -86,7 +98,7 @@
 									></span>
 								</div>
 								<div class="text-xs pt-2">
-									<span x-text="`helpful! | ${followup.tag_good.length}`"></span>
+									<span x-text="`helpful! | ${(followup?.tag_good ?? []).length}`"></span>
 								</div>
 							</div>
 
@@ -104,7 +116,7 @@
 											></span>
 										</div>
 										<div class="text-xs pt-2">
-											<span x-text="`helpful! | ${child.tag_good.length}`"></span>
+											<span x-text="`helpful! | ${(child?.tag_good ?? []).length}`"></span>
 										</div>
 									</div>
 								</div>
