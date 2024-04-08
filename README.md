@@ -4,8 +4,8 @@ Piazza course archiver and viewer
 
 ![screenshot](screenshot.png)
 
-- archive: archive courses to json, relies on unofficial piazza-api
-- viewer: work in progress, renders archived piazza courses
+- archive: archive courses to json (forked from 64bitpandas)
+- viewer: renders archived piazza courses. Built with alpine.js + tailwind.
 
 Quick Start:
 
