@@ -1,0 +1,69 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+	<script src="/assets/tailwind-3.4.3.min.js"></script>
+	<script src="/assets/alpinejs-3.13.8.min.js"></script>
+	<script>
+		const formatDate = (dateStr) => {
+			const date = new Date(dateStr);
+			const month = (date.getMonth() + 1).toString().padStart(2, '0');
+			const day = date.getDay().toString().padStart(2, '0');
+			const year = date.getFullYear().toString().substr(-2);
+			return `${month}/${day}/${year}`;
+		}
+		const getPosts = async () => {
+			return (await (await fetch('/posts.json')).json()).posts;
+		}
+	</script>
+</head>
+<body>
+	<div class="grid grid-cols-4"
+	  x-data="{ currentPost: {}, posts: [] }"
+		x-init="posts = await getPosts(); currentPost = posts[0]"
+	>
+		<div class="bg-gray-800 h-[100vh] col-span-1 overflow-y-scroll">
+			<template x-for="post in posts" :key="post.id">
+				<div
+					class="bg-gray-700 hover:bg-gray-600 text-gray-300 p-4 space-y-1 border-x border-t border-gray-600"
+					x-on:click="currentPost = post"
+				>
+					<div class="flex justify-between">
+						<h1
+							class="text-sm font-bold"
+							x-data="{ message: post.history[0].subject }"
+							x-html="message"
+						></h1>
+						<p
+							class="text-sm"
+							x-data="{ message: formatDate(post.created) }"
+							x-text="message"
+						></p>
+					</div>
+					<div
+						class="h-12 overflow-hidden"
+						x-data="{ content: post.history[0].content }"
+					>
+						<span class="text-xs" x-html="content"></span>
+					</div>
+				</div>
+			</template>
+		</div>
+		<div class="bg-gray-900 h-[100vh] col-span-3 overflow-y-scroll">
+			<div class="bg-gray-800 p-8 mx-4 my-2 text-white border border-gray-700 rounded-lg space-y-6">
+				<div class="font-bold text-xl">
+					<span x-html="currentPost.history[0].subject"></span>
+				</div>
+				<div>
+					<span x-html="currentPost.history[0].content"></span>
+				</div>
+			</div>
+
+			<div class="bg-gray-800 p-8 mx-4 my-2 text-white border border-gray-700 rounded-lg space-y-6">
+				<div class="font-bold text-xl">
+					<h1>followup discussions</h1>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
