@@ -9,15 +9,23 @@
 		const formatDate = (dateStr) => {
 			const date = new Date(dateStr);
 			const month = (date.getMonth() + 1).toString().padStart(2, '0');
-			const day = date.getDay().toString().padStart(2, '0');
+			const day = (date.getDay() + 1).toString().padStart(2, '0');
 			const year = date.getFullYear().toString().substr(-2);
 			return `${month}/${day}/${year}`;
 		}
 		const getPosts = async () => {
 			return (await (await fetch('/posts.json')).json()).posts;
 		}
-		const getFollowups = (followups) => {
-			return (followups ?? []).filter((followup) => (followup.type === "followup"))
+		const getReplies = (children) => {
+			return (children ?? []).filter((c) => (c.type === "followup" || c.type === "feedback"));
+		}
+		const getInstructorAnswer = (children) => {
+			const answer = (children ?? []).filter((c) => (c.type === "i_answer"));
+			return answer.length > 0 ? answer[0].history[0] : {};
+		}
+		const getStudentAnswer = (children) => {
+			const answer = (children ?? []).filter((c) => (c.type === "s_answer"));
+			return answer.length > 0 ? answer[0].history[0] : {};
 		}
 		</script>
 	</head>
@@ -29,7 +37,7 @@
 			<div class="bg-gray-800 h-[100vh] col-span-1 overflow-y-scroll">
 				<template x-for="post in posts" :key="post.id">
 					<div
-						class="bg-gray-700 hover:bg-gray-600 text-gray-300 p-4 space-y-1 border-x border-t border-gray-600 select-none"
+						class="bg-gray-700 hover:bg-gray-600 text-gray-200 p-4 space-y-1 border-x border-t border-gray-600 select-none"
 						x-on:click="currentPost = post"
 						x-data="{ h0: post.history[0] }"
 					>
@@ -50,8 +58,8 @@
 				</template>
 			</div>
 
-			<div class="bg-gray-900 h-[100vh] col-span-3 overflow-y-scroll">
-				<div class="bg-gray-800 p-8 mx-4 my-2 text-white border border-gray-700 rounded-lg space-y-6">
+			<div class="bg-gray-900 h-[100vh] col-span-3 overflow-y-scroll space-y-4">
+				<div class="bg-gray-800 p-8 mx-4 text-white border border-gray-700 rounded-lg space-y-8 mt-4">
 					<div class="flex justify-between font-bold text-xl">
 						<span x-html="marked.parse(currentPost.history[0].subject)"></span>
 						<div class="flex space-x-4">
@@ -73,17 +81,68 @@
 							x-html="marked.parse(currentPost.history[0].content)"
 						></span>
 					</div>
-					<div class="text-xs">
-						<span x-text="`good note | ${(currentPost?.tag_good ?? []).length}`"></span>
+					<div class="flex inline-block align-text-bottom justify-between text-xs">
+						<div class="text-blue-300">
+							<span x-text="`good note | ${(currentPost?.tag_good ?? []).length}`"></span>
+						</div>
+						<div class="space-x-2">
+							<template x-for="tag in (currentPost?.tags ?? [])">
+								<span class="bg-blue-400 text-blue-900 px-2 py-1 rounded-md" x-text="tag"></span>
+							</template>
+						</div>
 					</div>
 				</div>
 
 				<div
-					class="bg-gray-800 p-8 mx-4 my-2 text-white border border-gray-700 rounded-lg space-y-4"
-					x-show="getFollowups(currentPost?.children).length > 0"
+					class="bg-gray-800 p-8 mx-4 text-white border border-gray-700 rounded-lg space-y-4"
+					x-show="getStudentAnswer(currentPost?.children).content"
 				>
-					<h1 class="font-bold text-xl">followup discussions</h1>
-					<template x-for="followup in getFollowups(currentPost?.children)" :key="followup.id">
+					<h1 class="font-bold text-xl underline decoration-solid decoration-green-500">the students&apos; answer</h1>
+					<div class="space-y-1">
+						<div class="flex gap-x-2 text-sm">
+							<span
+								class="font-bold"
+								x-text="getStudentAnswer(currentPost?.children).uid ?? getStudentAnswer(currentPost?.children).uid_a"
+							></span>
+							<span x-text="formatDate(getStudentAnswer(currentPost?.children).created)"></span>
+						</div>
+						<div class="overflow-x-scroll">
+							<span
+								class="text-sm"
+								x-html="marked.parse(getStudentAnswer(currentPost?.children).content ?? '')"
+							></span>
+						</div>
+					</div>
+				</div>
+
+				<div
+					class="bg-gray-800 p-8 mx-4 text-white border border-gray-700 rounded-lg space-y-4"
+					x-show="getInstructorAnswer(currentPost?.children).content"
+				>
+					<h1 class="font-bold text-xl underline decoration-solid decoration-yellow-500">the instructors&apos; answer</h1>
+					<div class="space-y-1">
+						<div class="flex gap-x-2 text-sm">
+							<span
+								class="font-bold"
+								x-text="getInstructorAnswer(currentPost?.children).uid ?? getInstructorAnswer(currentPost?.children).uid_a"
+							></span>
+							<span x-text="formatDate(getInstructorAnswer(currentPost?.children).created)"></span>
+						</div>
+						<div class="overflow-x-scroll">
+							<span
+								class="text-sm"
+								x-html="marked.parse(getInstructorAnswer(currentPost?.children).content ?? '')"
+							></span>
+						</div>
+					</div>
+				</div>
+
+				<div
+					class="bg-gray-800 p-8 mx-4 text-white border border-gray-700 rounded-lg space-y-4"
+					x-show="getReplies(currentPost?.children).length > 0"
+				>
+					<h1 class="font-bold text-xl underline decoration-solid decoration-blue-500">followup discussions</h1>
+					<template x-for="followup in getReplies(currentPost?.children)" :key="followup.id">
 
 						<div class="bg-gray-700 py-4 px-6 rounded-md">
 							<div class="space-y-1">
@@ -97,12 +156,12 @@
 										x-html="marked.parse(followup.subject)"
 									></span>
 								</div>
-								<div class="text-xs pt-2">
+								<div class="text-xs text-blue-300 pt-2">
 									<span x-text="`helpful! | ${(followup?.tag_good ?? []).length}`"></span>
 								</div>
 							</div>
 
-							<template x-for="child in followup.children" :key="child.id">
+							<template x-for="child in getReplies(followup?.children)" :key="child.id">
 								<div class="bg-gray-800 py-4 px-6 rounded-md ml-2 mt-4">
 									<div class="space-y-1">
 										<div class="flex gap-x-2 text-sm">
