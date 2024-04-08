@@ -32,7 +32,7 @@
 						class="bg-gray-700 hover:bg-gray-600 text-gray-300 p-4 space-y-1 border-x border-t border-gray-600 select-none"
 						x-on:click="currentPost = post"
 						x-data="{ h0: post.history[0] }"
-						>
+					>
 						<div class="flex justify-between pointer-events-none">
 							<h1
 								class="text-sm font-bold"
@@ -49,6 +49,7 @@
 					</div>
 				</template>
 			</div>
+
 			<div class="bg-gray-900 h-[100vh] col-span-3 overflow-y-scroll">
 				<div class="bg-gray-800 p-8 mx-4 my-2 text-white border border-gray-700 rounded-lg space-y-6">
 					<div class="font-bold text-xl">
@@ -60,15 +61,20 @@
 							x-html="marked.parse(currentPost.history[0].content)"
 						></span>
 					</div>
+					<div class="text-xs">
+						<span x-text="`good note | ${currentPost.tag_good.length}`"></span>
+					</div>
 				</div>
 
 				<div
 					class="bg-gray-800 p-8 mx-4 my-2 text-white border border-gray-700 rounded-lg space-y-4"
+					x-show="getFollowups(currentPost.children).length > 0"
 				>
 					<h1 class="font-bold text-xl">followup discussions</h1>
 					<template x-for="followup in getFollowups(currentPost.children)" :key="followup.id">
+
 						<div class="bg-gray-700 py-4 px-6 rounded-md">
-							<div class="space-y-1 pb-2">
+							<div class="space-y-1">
 								<div class="flex gap-x-2 text-sm">
 									<span class="font-bold" x-text="followup.uid ?? followup.uid_a"></span>
 									<span x-text="formatDate(followup.created)"></span>
@@ -79,11 +85,31 @@
 										x-html="marked.parse(followup.subject)"
 									></span>
 								</div>
+								<div class="text-xs pt-2">
+									<span x-text="`helpful! | ${followup.tag_good.length}`"></span>
+								</div>
 							</div>
-							<span
-								class="text-xs"
-								x-text="`helpful! | ${followup.tag_good.length}`"
-							></span>
+
+							<template x-for="child in followup.children" :key="child.id">
+								<div class="bg-gray-800 py-4 px-6 rounded-md ml-2 mt-4">
+									<div class="space-y-1">
+										<div class="flex gap-x-2 text-sm">
+											<span class="font-bold" x-text="child.uid ?? child.uid_a"></span>
+											<span x-text="formatDate(child.created)"></span>
+										</div>
+										<div class="overflow-x-scroll">
+											<span
+												class="text-sm"
+												x-html="marked.parse(child.subject)"
+											></span>
+										</div>
+										<div class="text-xs pt-2">
+											<span x-text="`helpful! | ${child.tag_good.length}`"></span>
+										</div>
+									</div>
+								</div>
+							</template>
+
 						</div>
 					</template>
 				</div>
