@@ -1,15 +1,36 @@
+import grequests # IMPORTANT: Must be imported before "requests"
+
 from piazza_api import Piazza, exceptions
 from piazza_api.network import Network
 from collections import namedtuple
 from typing import Generator, Optional
 from urllib.parse import unquote
 from tqdm import tqdm
-import time
 import requests
+import time
 import json
 import pathlib
 import os
 import re
+
+PIAZZA_RATE_LIMIT = 1
+MAX_PBAR_DESC_LEN = 32
+STARTUP_BANNER = \
+"""
+██████╗ ██╗ █████╗ ███████╗███████╗ █████╗ ██████╗  ██████╗ ██╗  ██╗
+██╔══██╗██║██╔══██╗╚══███╔╝╚══███╔╝██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝
+██████╔╝██║███████║  ███╔╝   ███╔╝ ███████║██████╔╝██║   ██║ ╚███╔╝
+██╔═══╝ ██║██╔══██║ ███╔╝   ███╔╝  ██╔══██║██╔══██╗██║   ██║ ██╔██╗
+██║     ██║██║  ██║███████╗███████╗██║  ██║██████╔╝╚██████╔╝██╔╝ ██╗
+╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝
+
+ █████╗ ██████╗  ██████╗██╗  ██╗██╗██╗   ██╗███████╗██████╗
+██╔══██╗██╔══██╗██╔════╝██║  ██║██║██║   ██║██╔════╝██╔══██╗
+███████║██████╔╝██║     ███████║██║██║   ██║█████╗  ██████╔╝
+██╔══██║██╔══██╗██║     ██╔══██║██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
+██║  ██║██║  ██║╚██████╗██║  ██║██║ ╚████╔╝ ███████╗██║  ██║
+╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
+"""
 
 class Color:
     MAGENTA   = "\033[95m"
@@ -45,7 +66,11 @@ def gen_dict_extract(key: str, var: dict) -> Generator:
 
 
 def set_pbar(pbar: tqdm, color: str, desc: str, last=False):
-    pbar.set_description(f"{color}{desc}{Color.NC}")
+    formatted = f"{desc[:MAX_PBAR_DESC_LEN-3].strip()}"
+    if len(desc) > MAX_PBAR_DESC_LEN:
+        formatted = f"{formatted}..."
+
+    pbar.set_description(f"{color}{formatted.ljust(MAX_PBAR_DESC_LEN)}{Color.NC}")
     if last:
         pbar.close()
     else:
@@ -111,8 +136,9 @@ def make_piazza_client() -> Piazza:
     try:
         p = Piazza()
         email, password = auth()
+        if None not in (email, password):
+            print(f"{Color.CYAN}Authenticating as {email}{Color.NC}...\n")
         p.user_login(email=email, password=password)
-        print(f"{Color.CYAN}Authenticating as {email}{Color.NC}\n")
         return p
     except exceptions.AuthenticationError as e:
         print(f"{Color.FAIL}Authentication Error: {e}{Color.NC}\n")
@@ -120,6 +146,11 @@ def make_piazza_client() -> Piazza:
 
 
 def archive_class_info(path: str, class_info: ClassInfo):
+    if os.path.isfile(path):
+        print(f"{Color.WARNING}Already archived: \"{path}\"{Color.NC}")
+        with open(path, "r") as f:
+            return json.loads(f.read())
+
     try:
         info_file = open(path, "w")
         info_file.write(json.dumps(class_info.json, indent=2))
@@ -130,6 +161,11 @@ def archive_class_info(path: str, class_info: ClassInfo):
 
 
 def archive_class_stats(path: str, nw: Network) -> dict:
+    if os.path.isfile(path):
+        print(f"{Color.WARNING}Already archived: \"{path}\"{Color.NC}")
+        with open(path, "r") as f:
+            return json.loads(f.read())
+
     try:
         print(f"{Color.CYAN}Fetching course statistics...{Color.NC}")
         stats = nw.get_statistics()
@@ -150,13 +186,13 @@ def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
         feed = nw.get_feed(limit=999999, offset=0)["feed"]
         feed.sort(key=lambda info: int(info["nr"]))
 
-        pbar, posts = tqdm(feed), []
+        pbar, posts = tqdm(feed, dynamic_ncols=True), []
         for post_info in feed:
             post_num = post_info["nr"]
             path = f"{base_path}/{prefix}/{post_num}.json"
 
             filename = f"{post_num}.json"
-            subject = f"{post_info["subject"][:32]}..."
+            subject = post_info["subject"]
 
             if os.path.isfile(path):
                 set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
@@ -165,13 +201,13 @@ def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
                 post_file.close()
                 pbar.refresh()
             else:
-                set_pbar(pbar, Color.GREEN, f"{post_num}.json - {subject}")
+                set_pbar(pbar, Color.GREEN, f"{post_num}.json | {subject}")
                 post = nw.get_post(post_info["id"])
                 posts_file = open(path, "w")
                 posts_file.write(json.dumps(post, indent=2))
                 posts_file.close()
                 posts.append(post)
-                time.sleep(1)
+                time.sleep(PIAZZA_RATE_LIMIT)
 
         set_pbar(pbar, Color.GREEN, f"Successfully archived {len(feed)} posts", last=True)
         return posts
@@ -181,6 +217,11 @@ def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
 
 
 def archive_users(path: str, posts: list[dict], nw: Network) -> list[dict]:
+    if os.path.isfile(path):
+        print(f"{Color.WARNING}Already archived: \"{path}\"{Color.NC}")
+        with open(path, "r") as f:
+            return json.loads(f.read())
+
     try:
         uids = set()
         for post in posts:
@@ -198,7 +239,7 @@ def archive_users(path: str, posts: list[dict], nw: Network) -> list[dict]:
 def archive_user_photos(path: str, users: list[dict]):
     pathlib.Path(path).mkdir(parents=True, exist_ok=True)
 
-    pbar = tqdm(users)
+    pbar = tqdm(users, dynamic_ncols=True)
     for user in users:
         url = user["photo_url"]
         uid = user["id"]
@@ -209,7 +250,7 @@ def archive_user_photos(path: str, users: list[dict]):
             set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
             continue
         elif url:
-            set_pbar(pbar, Color.GREEN, f"User {uid}, photo: {filename}")
+            set_pbar(pbar, Color.GREEN, f"User {uid} | Photo: {filename}")
             res = requests.get(url)
             f = open(dst, "wb")
             f.write(res.content)
@@ -232,36 +273,52 @@ def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
     """Extract s3 assets from posts and return posts json with converted urls"""
 
     posts_json_str = json.dumps({ "posts": posts }, indent=2)
-    links = extract_links(json.loads(posts_json_str))
 
-    pbar = tqdm(links)
-    for link in links:
+    def convert_link(link):
+        """Convert link and update the posts json string"""
+        nonlocal posts_json_str
         decoded = unquote(link[link.find("prefix=") + len("prefix="):])
         posts_json_str = posts_json_str.replace(link, f"{url_prefix}/{decoded}")
-        dst = f"{base_path}/{url_prefix}/{decoded}"
+        return f"{base_path}/{url_prefix}/{decoded}"
+
+    links = extract_links(json.loads(posts_json_str))
+    pbar = tqdm(links, dynamic_ncols=True)
+
+    # Check if assets are already archived
+    links_to_archive = []
+    for link in links:
+        dst = convert_link(link)
+        filename = os.path.split(dst)[1]
+        if os.path.isfile(dst):
+            set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
+        else:
+            links_to_archive.append(link)
+
+    # Generate grequests GET requests
+    make_url = lambda p: f"https://piazza.com{p}" if p[0] == "/" else p
+    reqs = [grequests.get(make_url(link)) for link in links_to_archive]
+
+    # Fetch assets in asynchronously, 8 at a time
+    for i, res in grequests.imap_enumerated(reqs, size=8):
+        link = links_to_archive[i] # May come back out of order, use imap index
+        dst = convert_link(link)
         dir, filename = os.path.split(dst)
 
-        if not os.path.isfile(dst):
-            set_pbar(pbar, Color.GREEN, filename)
-            url = f"https://piazza.com{link}" if link[0] == "/" else link
-            res = requests.get(url)
-            pathlib.Path(dir).mkdir(parents=True, exist_ok=True)
-            f = open(dst, "wb")
-            f.write(res.content)
-            f.close()
-        else:
-            set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
+        if res is None:
+            raise ValueError(f"Request failed: {reqs[i]}")
+
+        set_pbar(pbar, Color.GREEN, filename)
+        pathlib.Path(dir).mkdir(parents=True, exist_ok=True)
+        f = open(dst, "wb")
+        f.write(res.content)
+        f.close()
 
     set_pbar(pbar, Color.GREEN, f"Successfully archived {len(links)} assets", last=True)
     return posts_json_str
 
 
 def main(cwd):
-    banner = f"\n{Color.MAGENTA}----------------------------------{Color.NC}\n"+\
-               f"{Color.MAGENTA}Welcome to the Piazzabox Archiver!{Color.NC}\n"+\
-               f"{Color.MAGENTA}----------------------------------{Color.NC}\n"
-
-    print(banner)
+    print(f"\n{Color.BLUE}{STARTUP_BANNER}{Color.NC}\n")
     p = make_piazza_client()
     classes, selection = select_classes(p)
 
@@ -273,13 +330,14 @@ def main(cwd):
         print(f"\n{Color.BOLD}{Color.CYAN}{str(curr_class)}:{Color.NC}")
         network = p.network(curr_class.id)
 
-        print(f"\n{Color.BLUE}Archiving class info {Color.NC}")
+        print(f"\n{Color.BLUE}Archiving class info{Color.NC}")
         archive_class_info(f"{curr_path}/info.json", curr_class)
 
-        print(f"\n{Color.BLUE}Archiving class stats {Color.NC}")
+        print(f"\n{Color.BLUE}Archiving class stats{Color.NC}")
         archive_class_stats(f"{curr_path}/stats.json", network)
 
-        print(f"\n{Color.BLUE}Archiving class posts{Color.NC}")
+        print(f"\n{Color.BLUE}Archiving class posts{Color.NC}", end=" ")
+        print(f"{Color.WARNING}(rate limit: {PIAZZA_RATE_LIMIT} req/s){Color.NC}")
         posts = archive_posts(curr_path, "posts", network)
 
         print(f"\n{Color.BLUE}Archiving assets from posts{Color.NC}")
