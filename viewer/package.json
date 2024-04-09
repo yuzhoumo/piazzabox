@@ -4,8 +4,8 @@
   "description": "Static HTML viewer for Piazza course archives",
   "main": "tailwind.config.js",
   "scripts": {
-    "format": "prettier --write index.html --plugin=prettier-plugin-tailwindcss",
-    "rebuild-css": "npx tailwindcss -o assets/tailwind.css --minify",
+    "format": "prettier --write ./src/index.html --plugin=prettier-plugin-tailwindcss",
+    "rebuild-css": "npx tailwindcss -o ./src/assets/tailwind.css --minify",
     "build": "npm run format && npm run rebuild-css"
   },
   "author": "Yuzhou (Joe) Mo",
