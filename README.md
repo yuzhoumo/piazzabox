@@ -4,7 +4,7 @@ Piazza course archiver and statically hostable viewer
 
 ![screenshot](screenshot.png)
 
-- archive: Archive courses to json
+- archive: Archive courses to json and download assets
 - viewer: Renders archived piazza courses. Built with Alpine.js + Tailwind.
 
 ### Usage
@@ -18,7 +18,7 @@ Piazza course archiver and statically hostable viewer
 
 Archiver:
 
-```
+```sh
 cd archiver
 python3 -m venv archive-venv
 source ./archive-venv/bin/activate
@@ -30,7 +30,7 @@ Viewer:
 The viewer is static and can be hosted as-is. Install dev dependencies only if
 you are planning to make changes.
 
-```
+```sh
 cd viewer
 pnpm install
 # Important: Run after making changes to re-build tailwind css
