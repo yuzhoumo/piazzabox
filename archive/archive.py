@@ -21,41 +21,34 @@ class Color:
 
 
 class ClassInfo(namedtuple("ClassInfo", ["num", "term", "id"])):
+    __slots__ = ()
     def __str__(self):
         return f"{self.num} {self.term} ({self.id})"
 
 
 def parse_selection(selection, num_classes):
     result = set()
-    ranges = selection.split(',')
-    for r in ranges:
-        t = r.split('-')
-        if len(t) == 1:
-            i = int(t[0])
-            if i < 1 or i > num_classes:
-                raise ValueError(f'Invalid selection {i}')
-            result.add(i)
-        else:
-            first, last = t
-            for i in range(int(first), int(last)+1):
-                if i < 1 or i > num_classes:
-                    raise ValueError(f'Invalid selection {i}')
-                result.add(i)
-
+    groups = selection.split(",")
+    for g in groups:
+        pair = g.split('-')
+        first, last = int(pair[0]), int(pair[-1])
+        if first < 1 or last > num_classes:
+            raise ValueError(f'Selection is out of range')
+        result.update(range(int(first), int(last)+1))
     return result
 
 
 def select_classes(p: Piazza) -> tuple[list[ClassInfo], set[int]]:
     profile, classes = p.get_user_profile(), []
-    for i, c in profile["all_classes"].values():
+    for i, c in enumerate(profile["all_classes"].values()):
         classes.append(ClassInfo(num=c["num"], term=c["term"], id=c["id"]))
-        print(f"{i+1}: {str(c)}")
+        print(f"{i+1}: {str(classes[-1])}")
 
-    print(f'\n{Color.MAGENTA}Choose the classes you want to archive." +\
-            "\nExamples:\t1\t2-5\t3-5,9-10{Color.NC}')
+    print(f"\n{Color.MAGENTA}Select the classes you would like to archive."+\
+          f"\nExamples:\t1\t5-7\t9-12{Color.NC}")
 
     try:
-        return classes, parse_selection(input('> '), len(classes))
+        return classes, parse_selection(input('>>> '), len(classes))
     except Exception as e:
         print(f'{Color.FAIL}Invalid selection. {e}{Color.NC}')
         exit(1)
@@ -68,7 +61,7 @@ def auth() -> tuple[Optional[str], Optional[str]]:
         f.close()
         return secrets['email'], secrets['password']
     except:
-        print(f'{Color.WARNING}SECRETS file missing or invalid. Please enter your credentials below.{Color.NC}')
+        print(f'{Color.WARNING}SECRETS file missing or invalid.{Color.NC}')
         return None, None
 
 
@@ -84,16 +77,16 @@ def make_piazza_client() -> Piazza:
         exit(1)
 
 
-def save_class_info(base_path: str, class_info: ClassInfo):
-    info_file = open(f"{base_path}/info.json", "w")
+def save_class_info(path: str, class_info: ClassInfo):
+    info_file = open(path, "w")
     info_file.write(json.dumps(class_info, indent=2))
     info_file.close()
 
 
-def save_class_stats(base_path: str, network: Network):
+def save_class_stats(path: str, network: Network):
     try:
         print(f"{Color.CYAN}Fetching course statistics...{Color.NC}")
-        stats_file = open(f"{base_path}/stats.json", "w")
+        stats_file = open(path, "w")
         stats_file.write(json.dumps(network.get_statistics(), indent=2))
         stats_file.close()
         print(f"{Color.GREEN}Course stats saved to stats.json{Color.NC}")
@@ -101,8 +94,8 @@ def save_class_stats(base_path: str, network: Network):
         print(f"{Color.FAIL}Failed to fetch stats: {e}{Color.NC}")
 
 
-def save_class_posts(base_path: str, network: Network):
-    posts_file = open(f"{base_path}/posts.json", "w")
+def save_class_posts(path: str, network: Network):
+    posts_file = open(path, "w")
     posts = network.iter_all_posts()
     posts_file.write('{"posts": [\n')
     cnt = 1
@@ -133,13 +126,14 @@ def main(cwd):
         pathlib.Path(curr_path).mkdir(parents=True, exist_ok=True)
 
         network = p.network(curr_class.id)
-        save_class_info(curr_path, curr_class)
-        save_class_stats(curr_path, network)
-        save_class_posts(curr_path, network)
+        save_class_info(f"{curr_path}/info.json", curr_class)
+        save_class_stats(f"{curr_path}/stats.json", network)
+        save_class_posts(f"{curr_path}/posts.json", network)
 
-    print(f"{Color.GREEN}All done!{Color.NC}")
+    print(f"{Color.GREEN}Completed!{Color.NC}")
 
 
 if __name__ == "__main__":
     CURRENT_WORKING_DIR = os.path.dirname(os.path.realpath(__file__))
     main(CURRENT_WORKING_DIR)
+
