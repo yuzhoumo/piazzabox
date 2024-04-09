@@ -1,22 +1,14 @@
-"""
-Copyright 2022 Ben Cuan
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-"""
-
 from piazza_api import Piazza, exceptions
+from piazza_api.network import Network
+from collections import namedtuple
+from typing import Optional
 import json
 import pathlib
 import os
 import time
 
-FILEPATH = os.path.dirname(os.path.realpath(__file__))
 
-class color:
+class Color:
     MAGENTA = '\033[95m'
     BLUE = '\033[94m'
     CYAN = '\033[96m'
@@ -27,103 +19,127 @@ class color:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-# Takes in a string like '3-5, 9-10' and returns a set like (3, 4, 5, 9, 10)
-def process_selection(selection):
+
+class ClassInfo(namedtuple("ClassInfo", ["num", "term", "id"])):
+    def __str__(self):
+        return f"{self.num} {self.term} ({self.id})"
+
+
+def parse_selection(selection, num_classes):
     result = set()
     ranges = selection.split(',')
     for r in ranges:
         t = r.split('-')
         if len(t) == 1:
             i = int(t[0])
-            if i < 1 or i > len(classes):
+            if i < 1 or i > num_classes:
                 raise ValueError(f'Invalid selection {i}')
             result.add(i)
         else:
             first, last = t
             for i in range(int(first), int(last)+1):
-                if i < 1 or i > len(classes):
+                if i < 1 or i > num_classes:
                     raise ValueError(f'Invalid selection {i}')
                 result.add(i)
 
     return result
 
-def prettify(c):
-    return f"{c['num']} {c['term']} ({c['id']})"
 
+def select_classes(p: Piazza) -> tuple[list[ClassInfo], set[int]]:
+    profile, classes = p.get_user_profile(), []
+    for i, c in profile["all_classes"].values():
+        classes.append(ClassInfo(num=c["num"], term=c["term"], id=c["id"]))
+        print(f"{i+1}: {str(c)}")
 
-print(f'{color.MAGENTA}Welcome to the Piazza Archiver!{color.NC}')
-p = Piazza()
-email, password = None, None
-try:
-    sf = open('SECRETS', 'r')
-    secrets = json.load(sf)
-    sf.close()
-    email, password = secrets['email'], secrets['password']
-    print(f'{color.CYAN}Authenticating as {email}{color.NC}')
-except:
-    print(f'{color.WARNING}SECRETS file missing or invalid. Please enter your credentials below.{color.NC}')
+    print(f'\n{Color.MAGENTA}Choose the classes you want to archive." +\
+            "\nExamples:\t1\t2-5\t3-5,9-10{Color.NC}')
 
-try:
-    p.user_login(email=email, password=password)
-except exceptions.AuthenticationError as e:
-    print(f'{color.FAIL}Authentication Error: {e}{color.NC}')
-    exit(1)
-profile = p.get_user_profile()
-# f = open('user.json', 'w')
-# f.write(json.dumps(profile))
-
-# f.close()
-classes = []
-ctr = 1
-for c in profile['all_classes'].values():
-    print(f"{ctr}: {prettify(c)}")
-    classes.append(c)
-    ctr += 1
-print(f'\n{color.MAGENTA}Choose the classes you want to archive.\nExamples:\t1\t2-5\t3-5,9-10{color.NC}')
-selection = input('> ')
-try:
-    selection = process_selection(selection)
-except Exception as e:
-    print(f'{color.FAIL}Invalid selection: {selection}\n{e}{color.NC}')
-    exit(1)
-
-for i in selection:
-    c = classes[i-1]
-    print(f'{color.BLUE}Archiving {prettify(c)}{color.NC}')
-    curr_path = f"{FILEPATH}/{prettify(c)}"
-    pathlib.Path(curr_path).mkdir(parents=True, exist_ok=True)
-    network = p.network(c['id'])
-    info_file = open(f"{curr_path}/info.json", "w")
-    info_file.write(json.dumps(c, indent=2))
-    info_file.close()
     try:
-        print(f"{color.CYAN}Fetching course statistics...{color.NC}")
-        stats_file = open(f"{curr_path}/stats.json", "w")
+        return classes, parse_selection(input('> '), len(classes))
+    except Exception as e:
+        print(f'{Color.FAIL}Invalid selection. {e}{Color.NC}')
+        exit(1)
+
+
+def auth() -> tuple[Optional[str], Optional[str]]:
+    try:
+        f = open('SECRETS', 'r')
+        secrets = json.load(f)
+        f.close()
+        return secrets['email'], secrets['password']
+    except:
+        print(f'{Color.WARNING}SECRETS file missing or invalid. Please enter your credentials below.{Color.NC}')
+        return None, None
+
+
+def make_piazza_client() -> Piazza:
+    try:
+        p = Piazza()
+        email, password = auth()
+        p.user_login(email=email, password=password)
+        print(f'{Color.CYAN}Authenticating as {email}{Color.NC}')
+        return p
+    except exceptions.AuthenticationError as e:
+        print(f'{Color.FAIL}Authentication Error: {e}{Color.NC}')
+        exit(1)
+
+
+def save_class_info(base_path: str, class_info: ClassInfo):
+    info_file = open(f"{base_path}/info.json", "w")
+    info_file.write(json.dumps(class_info, indent=2))
+    info_file.close()
+
+
+def save_class_stats(base_path: str, network: Network):
+    try:
+        print(f"{Color.CYAN}Fetching course statistics...{Color.NC}")
+        stats_file = open(f"{base_path}/stats.json", "w")
         stats_file.write(json.dumps(network.get_statistics(), indent=2))
         stats_file.close()
-        print(f"{color.GREEN}Course stats saved to stats.json. Fetching posts...{color.NC}")
+        print(f"{Color.GREEN}Course stats saved to stats.json{Color.NC}")
     except Exception as e:
-        print(f"{color.FAIL}Failed to fetch stats: {e}{color.NC}")
-    posts_file = open(f"{curr_path}/posts.json", "w")
+        print(f"{Color.FAIL}Failed to fetch stats: {e}{Color.NC}")
+
+
+def save_class_posts(base_path: str, network: Network):
+    posts_file = open(f"{base_path}/posts.json", "w")
     posts = network.iter_all_posts()
     posts_file.write('{"posts": [\n')
-    curr_count = 0
-    for post in posts:
+    cnt = 1
+    for post in enumerate(posts):
         posts_file.write(json.dumps(post, indent=2))
         last = posts_file.tell()
         posts_file.write(",\n")
-        curr_count += 1
-        print(f"Current progress: {curr_count} posts")
+        print(f"Current progress: {cnt} posts")
+        cnt += 1
         time.sleep(1)
-        # if curr_count % 50 == 0:
-        #     print(f"{color.WARNING}Taking a break to avoid timeout...{color.NC}")
-        #     time.sleep(60)
     posts_file.seek(last)
     posts_file.write('\n]}\n')
-    print(f"{color.GREEN}Successfully archived {curr_count} posts{color.NC}")
-
-
     posts_file.close()
+    print(f"{Color.GREEN}Successfully archived {cnt} posts{Color.NC}")
 
-print(f"{color.GREEN}All done!{color.NC}")
 
+def main(cwd):
+    print(f'{Color.MAGENTA}Welcome to the Piazza Archiver!{Color.NC}')
+
+    p = make_piazza_client()
+    classes, selection = select_classes(p)
+
+    for i in selection:
+        curr_class = classes[i-1]
+        print(f'{Color.BLUE}Archiving {str(curr_class)}{Color.NC}')
+
+        curr_path = f"{cwd}/{str(curr_class)}"
+        pathlib.Path(curr_path).mkdir(parents=True, exist_ok=True)
+
+        network = p.network(curr_class.id)
+        save_class_info(curr_path, curr_class)
+        save_class_stats(curr_path, network)
+        save_class_posts(curr_path, network)
+
+    print(f"{Color.GREEN}All done!{Color.NC}")
+
+
+if __name__ == "__main__":
+    CURRENT_WORKING_DIR = os.path.dirname(os.path.realpath(__file__))
+    main(CURRENT_WORKING_DIR)
