@@ -123,7 +123,7 @@ def select_classes(p: Piazza) -> tuple[list[ClassInfo], set[int]]:
 
 def auth() -> tuple[Optional[str], Optional[str]]:
     try:
-        f = open("AUTH.json", "r")
+        f = open("secrets.json", "r")
         secrets = json.load(f)
         f.close()
         return secrets["email"], secrets["password"]
