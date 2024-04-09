@@ -4,25 +4,40 @@ Piazza course archiver and statically hostable viewer
 
 ![screenshot](screenshot.png)
 
-- viewer: renders archived piazza courses. built with alpine.js + tailwind.
-- archive: archive courses to json (forked from 64bitpandas)
+- archive: Archive courses to json
+- viewer: Renders archived piazza courses. Built with Alpine.js + Tailwind.
 
-### usage
+### Usage
 
-1. use `python3 archive.py` to archive a Piazza course.
-2. move the resulting `posts.json` into the `viewer/src` directory.
-3. run `python3 -m http.server` in the `viewer/src` directory (alternatively,
-host this directory somewhere).
-4. go to `localhost:8000` in your favorite web browser.
+1. Use `python3 archive.py` to archive a Piazza course.
+2. Move the resulting `assets/` and `posts.json` into the `viewer/src` directory.
+3. Run `python3 -m http.server` in the `viewer/src` directory to view it
+   locally at `localhost:8000` (alternatively, host this directory somewhere).
 
-### development
+### Installation
 
-run `pnpm run build` after making viewer changes to rebuild tailwind css and format.
+Archiver:
 
-### todo
+```
+cd archiver
+python3 -m venv archive-venv
+source ./archive-venv/bin/activate
+pip install -r requirements.txt
+```
+
+Viewer:
+
+The viewer is static and can be hosted as-is. Install dev dependencies only if
+you are planning to make changes.
+
+```
+cd viewer
+pnpm install
+# Important: Run after making changes to re-build tailwind css
+# pnpm run build
+```
+
+### TODO
 
 - support multiple posts.json
-- source images
 - search posts
-- usernames
-- profile pictures
