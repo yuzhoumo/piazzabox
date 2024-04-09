@@ -88,7 +88,6 @@ def set_pbar(pbar: tqdm, color: str, desc: str, last=False):
     formatted = f"{desc[:MAX_PBAR_DESC_LEN-3].strip()}"
     if len(desc) > MAX_PBAR_DESC_LEN:
         formatted = f"{formatted}..."
-
     pbar.set_description(f"{color}{formatted.ljust(MAX_PBAR_DESC_LEN)}{Color.NC}")
     if last:
         pbar.close()
@@ -225,7 +224,6 @@ def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
                 post_file = open(path, "r")
                 posts.append(json.loads(post_file.read()))
                 post_file.close()
-                pbar.refresh()
             else:
                 set_pbar(pbar, Color.GREEN, f"{post_num}.json | {subject}")
                 post = nw.get_post(post_info["id"])
