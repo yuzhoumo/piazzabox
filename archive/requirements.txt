@@ -1,7 +1,13 @@
 certifi==2024.2.2
 charset-normalizer==3.3.2
+gevent==24.2.1
+greenlet==3.0.3
+grequests==0.7.0
 idna==3.6
 requests==2.31.0
+setuptools==69.2.0
 six==1.16.0
 tqdm==4.66.2
 urllib3==2.2.1
+zope.event==5.0
+zope.interface==6.2
