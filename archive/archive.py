@@ -256,7 +256,7 @@ def archive_user_photos(path: str, users: list[dict]):
             f.write(res.content)
             f.close()
         else:
-            set_pbar(pbar, Color.WARNING, f"User {uid}, photo: null")
+            set_pbar(pbar, Color.WARNING, f"User {uid} | User has no photo")
 
     set_pbar(pbar, Color.GREEN, f"Successfully archived {len(users)} users", last=True)
 
