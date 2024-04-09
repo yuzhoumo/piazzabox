@@ -15,6 +15,7 @@ import re
 
 PIAZZA_RATE_LIMIT = 1
 MAX_PBAR_DESC_LEN = 32
+SECRETS_FILENAME = "secrets.json"
 STARTUP_BANNER = \
 """
 ██████╗ ██╗ █████╗ ███████╗███████╗ █████╗ ██████╗  ██████╗ ██╗  ██╗
@@ -31,6 +32,7 @@ STARTUP_BANNER = \
 ██║  ██║██║  ██║╚██████╗██║  ██║██║ ╚████╔╝ ███████╗██║  ██║
 ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
 """
+
 
 class Color:
     MAGENTA   = "\033[95m"
@@ -65,20 +67,8 @@ def gen_dict_extract(key: str, var: dict) -> Generator:
                         yield result
 
 
-def set_pbar(pbar: tqdm, color: str, desc: str, last=False):
-    formatted = f"{desc[:MAX_PBAR_DESC_LEN-3].strip()}"
-    if len(desc) > MAX_PBAR_DESC_LEN:
-        formatted = f"{formatted}..."
-
-    pbar.set_description(f"{color}{formatted.ljust(MAX_PBAR_DESC_LEN)}{Color.NC}")
-    if last:
-        pbar.close()
-    else:
-        pbar.update(1)
-
-
 def gen_leaf_nodes(node: dict|list) -> Generator:
-    """Yield a list of all leaf nodes from a container"""
+    """Yield a all leaf nodes from a container"""
     if isinstance(node, dict):
         leaves = []
         for value in node.values():
@@ -93,7 +83,21 @@ def gen_leaf_nodes(node: dict|list) -> Generator:
         yield [node]
 
 
-def parse_selection(selection, num_classes):
+def set_pbar(pbar: tqdm, color: str, desc: str, last=False):
+    """Update tqdm progress bar by one tick (close if last=True)."""
+    formatted = f"{desc[:MAX_PBAR_DESC_LEN-3].strip()}"
+    if len(desc) > MAX_PBAR_DESC_LEN:
+        formatted = f"{formatted}..."
+
+    pbar.set_description(f"{color}{formatted.ljust(MAX_PBAR_DESC_LEN)}{Color.NC}")
+    if last:
+        pbar.close()
+    else:
+        pbar.update(1)
+
+
+def parse_selection(selection: str, num_classes: int) -> set[int]:
+    """Parse user input from the class selection menu."""
     result = set()
     groups = selection.split(",")
     for g in groups:
@@ -106,6 +110,11 @@ def parse_selection(selection, num_classes):
 
 
 def select_classes(p: Piazza) -> tuple[list[ClassInfo], set[int]]:
+    """
+    Pulls all classes from Piazza and prompts the user to choose classes to
+    archive. Returns a list of ClassInfo for all classes and a set of integers
+    corresponding to the user's selection.
+    """
     profile, classes = p.get_user_profile(), []
     for i, c in enumerate(profile["all_classes"].values()):
         classes.append(ClassInfo(num=c["num"], term=c["term"], id=c["id"], json=c))
@@ -122,17 +131,22 @@ def select_classes(p: Piazza) -> tuple[list[ClassInfo], set[int]]:
 
 
 def auth() -> tuple[Optional[str], Optional[str]]:
+    """Read email and password from the secrets file."""
     try:
-        f = open("secrets.json", "r")
+        f = open(SECRETS_FILENAME, "r")
         secrets = json.load(f)
         f.close()
         return secrets["email"], secrets["password"]
     except:
-        print(f"{Color.WARNING}AUTH.json file missing or invalid.{Color.NC}")
+        print(f"{Color.WARNING}{SECRETS_FILENAME} file is missing or invalid.{Color.NC}")
         return None, None
 
 
 def make_piazza_client() -> Piazza:
+    """
+    Create a Piazza api client. Attempt to read credentials from secrets
+    file. If the secrets file is missing, prompt the user instead.
+    """
     try:
         p = Piazza()
         email, password = auth()
@@ -146,6 +160,10 @@ def make_piazza_client() -> Piazza:
 
 
 def archive_class_info(path: str, class_info: ClassInfo):
+    """
+    Fetches and saves class info to a file if it does not already exist.
+    Returns the class info json (read from the file if it already exists).
+    """
     if os.path.isfile(path):
         print(f"{Color.WARNING}Already archived: \"{path}\"{Color.NC}")
         with open(path, "r") as f:
@@ -161,6 +179,10 @@ def archive_class_info(path: str, class_info: ClassInfo):
 
 
 def archive_class_stats(path: str, nw: Network) -> dict:
+    """
+    Fetches and saves class stats to a file if it does not already exist.
+    Returns the class stats json (read from the file if it already exists).
+    """
     if os.path.isfile(path):
         print(f"{Color.WARNING}Already archived: \"{path}\"{Color.NC}")
         with open(path, "r") as f:
@@ -180,6 +202,10 @@ def archive_class_stats(path: str, nw: Network) -> dict:
 
 
 def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
+    """
+    Fetches and saves class posts to a directory if they do not already exist.
+    Returns the a list of post jsons (read from disk if it already exists).
+    """
     try:
         pathlib.Path(f"{base_path}/posts").mkdir(parents=True, exist_ok=True)
 
@@ -217,6 +243,10 @@ def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
 
 
 def archive_users(path: str, posts: list[dict], nw: Network) -> list[dict]:
+    """
+    Fetches and saves class users to a file if it does not already exist.
+    Returns the class users json (read from the file if it already exists).
+    """
     if os.path.isfile(path):
         print(f"{Color.WARNING}Already archived: \"{path}\"{Color.NC}")
         with open(path, "r") as f:
@@ -225,8 +255,11 @@ def archive_users(path: str, posts: list[dict], nw: Network) -> list[dict]:
     try:
         uids = set()
         for post in posts:
+            # Extract user ids from posts (only course staff can use the
+            # get_all_users api)
             for uid in gen_dict_extract("uid", post):
                 uids.add(uid)
+
         users = nw.get_users(list(uids))
         users_file = open(path, "w")
         users_file.write(json.dumps(users, indent=2))
@@ -237,6 +270,7 @@ def archive_users(path: str, posts: list[dict], nw: Network) -> list[dict]:
 
 
 def archive_user_photos(path: str, users: list[dict]):
+    """Fetch user photos from Piazza and save them to disk."""
     pathlib.Path(path).mkdir(parents=True, exist_ok=True)
 
     pbar = tqdm(users, dynamic_ncols=True)
@@ -262,7 +296,7 @@ def archive_user_photos(path: str, users: list[dict]):
 
 
 def extract_links(posts: dict) -> list[str]:
-    """Extract links from posts json"""
+    """Extract all s3 bucket links from posts json"""
     leaf_text = "".join([str(node) for node in gen_leaf_nodes(posts)])
     r = r"(?:(?:http[s]?://)?(?:piazza\.com))?/redirect/s3\?bucket=uploads[^\'\"\s)]*"
     links = re.findall(r, leaf_text)
@@ -284,7 +318,7 @@ def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
     links = extract_links(json.loads(posts_json_str))
     pbar = tqdm(links, dynamic_ncols=True)
 
-    # Check if assets are already archived
+    # Check if assets are already downloaded
     links_to_archive = []
     for link in links:
         dst = convert_link(link)
@@ -294,13 +328,13 @@ def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
         else:
             links_to_archive.append(link)
 
-    # Generate grequests GET requests
+    # Generate grequests GET requests for links
     make_url = lambda p: f"https://piazza.com{p}" if p[0] == "/" else p
     reqs = [grequests.get(make_url(link)) for link in links_to_archive]
 
-    # Fetch assets in asynchronously, 8 at a time
+    # Fetch assets asynchronously, 8 at a time
     for i, res in grequests.imap_enumerated(reqs, size=8):
-        link = links_to_archive[i] # May come back out of order, use imap index
+        link = links_to_archive[i] # Indices come back in arbitrary order
         dst = convert_link(link)
         dir, filename = os.path.split(dst)
 
