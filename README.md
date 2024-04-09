@@ -19,7 +19,7 @@ Piazza course archiver and statically hostable viewer
 Archiver:
 
 ```sh
-cd archiver
+cd archive
 python3 -m venv archive-venv
 source ./archive-venv/bin/activate
 pip install -r requirements.txt
