@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="80px" height="80px" viewBox="0 0 80 80" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 52.6 (67491) - http://www.bohemiancoding.com/sketch -->
+    <title>default</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <rect id="path-1" x="0" y="0" width="80" height="80"/>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="default">
+            <mask id="mask-2" fill="white">
+                <use xlink:href="#path-1"/>
+            </mask>
+            <use id="Rectangle" fill="#A7BADA" xlink:href="#path-1"/>
+            <ellipse id="Oval-Copy-2" fill="#EAEEF4" mask="url(#mask-2)" cx="40" cy="79.5" rx="40" ry="24.5"/>
+            <ellipse id="Oval-Copy" fill="#A7BADA" mask="url(#mask-2)" cx="40" cy="40.5" rx="17" ry="22.5"/>
+            <ellipse id="Oval" fill="#EAEEF4" mask="url(#mask-2)" cx="40" cy="36.5" rx="17" ry="22.5"/>
+        </g>
+    </g>
+<script xmlns="" id="bw-fido2-page-script"/></svg>

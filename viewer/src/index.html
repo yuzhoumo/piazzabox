@@ -3,33 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="/assets/tailwind.css" />
+    <script src="/assets/utils.js"></script>
     <script defer src="/assets/alpinejs-3.13.8.min.js"></script>
     <script src="/assets/marked-12.0.1.min.js"></script>
-    <script>
-      const formatDate = (dateStr) => {
-        const date = new Date(dateStr);
-        const month = (date.getMonth() + 1).toString().padStart(2, "0");
-        const day = (date.getDay() + 1).toString().padStart(2, "0");
-        const year = date.getFullYear().toString().substr(-2);
-        return `${month}/${day}/${year}`;
-      };
-      const getPosts = async () => {
-        return (await (await fetch("/posts.json")).json()).posts;
-      };
-      const getReplies = (children) => {
-        return (children ?? []).filter(
-          (c) => c.type === "followup" || c.type === "feedback",
-        );
-      };
-      const getInstructorAnswer = (children) => {
-        const answer = (children ?? []).filter((c) => c.type === "i_answer");
-        return answer.length > 0 ? answer[0].history[0] : {};
-      };
-      const getStudentAnswer = (children) => {
-        const answer = (children ?? []).filter((c) => c.type === "s_answer");
-        return answer.length > 0 ? answer[0].history[0] : {};
-      };
-    </script>
   </head>
   <body>
     <div
@@ -91,7 +67,7 @@
           <div class="flex justify-between align-text-bottom text-xs">
             <div class="text-blue-300">
               <span
-                x-text="`good note | ${(currentPost?.tag_good ?? []).length}`"
+                x-text="`good ${currentPost.type} | ${(currentPost?.tag_good ?? []).length}`"
               ></span>
             </div>
             <div class="space-x-2">
@@ -108,10 +84,12 @@
         <!-- student answer -->
         <div
           class="mx-4 space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
-          x-show="getStudentAnswer(currentPost?.children).content"
+          x-data="{ sanswer: {} }"
+          x-init="sanswer = getStudentAnswer(currentPost?.children)"
+          x-show="Boolean(sanswer.content)"
         >
           <h1
-            class="text-xl font-bold underline decoration-green-500 decoration-solid"
+            class="text-xl font-bold underline decoration-yellow-500 decoration-solid"
           >
             the students&apos; answer
           </h1>
@@ -119,16 +97,14 @@
             <div class="flex gap-x-2 text-sm">
               <span
                 class="font-bold"
-                x-text="getStudentAnswer(currentPost?.children).uid ?? getStudentAnswer(currentPost?.children).uid_a"
+                x-text="sanswer.uid_a ? getAnonName(sanswer.uid_a, currentPost.id) : sanswer.uid"
               ></span>
-              <span
-                x-text="formatDate(getStudentAnswer(currentPost?.children).created)"
-              ></span>
+              <span x-text="formatDate(sanswer.created)"></span>
             </div>
             <div class="overflow-x-scroll">
               <span
                 class="text-sm"
-                x-html="marked.parse(getStudentAnswer(currentPost?.children).content ?? '')"
+                x-html="marked.parse(sanswer.content ?? '')"
               ></span>
             </div>
           </div>
@@ -137,7 +113,9 @@
         <!-- instructor answer -->
         <div
           class="mx-4 space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
-          x-show="getInstructorAnswer(currentPost?.children).content"
+          x-data="{ ianswer: {} }"
+          x-init="ianswer = getInstructorAnswer(currentPost?.children)"
+          x-show="Boolean(ianswer.content)"
         >
           <h1
             class="text-xl font-bold underline decoration-yellow-500 decoration-solid"
@@ -148,16 +126,14 @@
             <div class="flex gap-x-2 text-sm">
               <span
                 class="font-bold"
-                x-text="getInstructorAnswer(currentPost?.children).uid ?? getInstructorAnswer(currentPost?.children).uid_a"
+                x-text="ianswer.uid_a ? getAnonName(ianswer.uid_a, currentPost.id) : ianswer.uid"
               ></span>
-              <span
-                x-text="formatDate(getInstructorAnswer(currentPost?.children).created)"
-              ></span>
+              <span x-text="formatDate(ianswer.created)"></span>
             </div>
             <div class="overflow-x-scroll">
               <span
                 class="text-sm"
-                x-html="marked.parse(getInstructorAnswer(currentPost?.children).content ?? '')"
+                x-html="marked.parse(ianswer.content ?? '')"
               ></span>
             </div>
           </div>
@@ -179,25 +155,35 @@
             x-for="followup in getReplies(currentPost?.children)"
             :key="followup.id"
           >
-            <div class="rounded-md bg-gray-700 px-6 py-4">
-              <div class="space-y-1">
-                <div class="flex gap-x-2 text-sm">
-                  <span
-                    class="font-bold"
-                    x-text="followup.uid ?? followup.uid_a"
-                  ></span>
-                  <span x-text="formatDate(followup.created)"></span>
-                </div>
-                <div class="overflow-x-scroll">
-                  <span
-                    class="text-sm"
-                    x-html="marked.parse(followup.subject)"
-                  ></span>
-                </div>
-                <div class="pt-2 text-xs text-blue-300">
-                  <span
-                    x-text="`helpful! | ${(followup?.tag_good ?? []).length}`"
-                  ></span>
+            <div
+              class="rounded-md bg-gray-700 px-6 py-4"
+              x-data="{ fuid: '', fIsAnon: false }"
+              x-init="fuid = followup.uid ?? followup.uid_a; fIsAnon = Boolean(followup.uid_a)"
+            >
+              <div class="flex flex-row gap-x-2 align-top">
+                <img
+                  class="mt-1 h-10 w-10 border border-gray-500"
+                  :src="fIsAnon ? getAnonIcon(fuid, currentPost.id) : getUserIcon(fuid)"
+                />
+                <div class="space-y-1">
+                  <div class="flex gap-x-2 text-sm">
+                    <span
+                      class="font-bold"
+                      x-text="fIsAnon ? getAnonName(fuid, currentPost.id) : fuid"
+                    ></span>
+                    <span x-text="formatDate(followup.created)"></span>
+                  </div>
+                  <div class="overflow-x-scroll">
+                    <span
+                      class="text-sm"
+                      x-html="marked.parse(followup.subject)"
+                    ></span>
+                  </div>
+                  <div class="pt-2 text-xs text-blue-300">
+                    <span
+                      x-text="`helpful! | ${(followup?.tag_good ?? []).length}`"
+                    ></span>
+                  </div>
                 </div>
               </div>
 
@@ -206,25 +192,35 @@
                 x-for="child in getReplies(followup?.children)"
                 :key="child.id"
               >
-                <div class="ml-2 mt-4 rounded-md bg-gray-800 px-6 py-4">
-                  <div class="space-y-1">
-                    <div class="flex gap-x-2 text-sm">
-                      <span
-                        class="font-bold"
-                        x-text="child.uid ?? child.uid_a"
-                      ></span>
-                      <span x-text="formatDate(child.created)"></span>
-                    </div>
-                    <div class="overflow-x-scroll">
-                      <span
-                        class="text-sm"
-                        x-html="marked.parse(child.subject)"
-                      ></span>
-                    </div>
-                    <div class="pt-2 text-xs">
-                      <span
-                        x-text="`helpful! | ${(child?.tag_good ?? []).length}`"
-                      ></span>
+                <div
+                  class="ml-2 mt-4 rounded-md bg-gray-800 px-6 py-4"
+                  x-data="{ uid: '', isAnon: false }"
+                  x-init="uid = child.uid ?? child.uid_a; isAnon = Boolean(child.uid_a)"
+                >
+                  <div class="flex flex-row gap-x-2 align-top">
+                    <img
+                      class="mt-1 h-10 w-10 border border-gray-500"
+                      :src="isAnon ? getAnonIcon(uid, currentPost.id) : getUserIcon(uid)"
+                    />
+                    <div class="space-y-1">
+                      <div class="flex gap-x-2 text-sm">
+                        <span
+                          class="font-bold"
+                          x-text="isAnon ? getAnonName(child.uid_a, currentPost.id) : uid"
+                        ></span>
+                        <span x-text="formatDate(child.created)"></span>
+                      </div>
+                      <div class="overflow-x-scroll">
+                        <span
+                          class="text-sm"
+                          x-html="marked.parse(child.subject)"
+                        ></span>
+                      </div>
+                      <div class="pt-2 text-xs text-blue-300">
+                        <span
+                          x-text="`helpful! | ${(child?.tag_good ?? []).length}`"
+                        ></span>
+                      </div>
                     </div>
                   </div>
                 </div>
