@@ -3,6 +3,7 @@ from piazza_api.network import Network
 from collections import namedtuple
 from typing import Generator, Optional
 from urllib.parse import unquote
+from tqdm import tqdm
 import time
 import requests
 import json
@@ -10,17 +11,16 @@ import pathlib
 import os
 import re
 
-
 class Color:
-    MAGENTA = '\033[95m'
-    BLUE = '\033[94m'
-    CYAN = '\033[96m'
-    GREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    NC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    MAGENTA   = "\033[95m"
+    BLUE      = "\033[94m"
+    CYAN      = "\033[96m"
+    GREEN     = "\033[92m"
+    WARNING   = "\033[93m"
+    FAIL      = "\033[91m"
+    NC        = "\033[0m"
+    BOLD      = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 
 class ClassInfo(namedtuple("ClassInfo", ["num", "term", "id", "json"])):
@@ -31,7 +31,7 @@ class ClassInfo(namedtuple("ClassInfo", ["num", "term", "id", "json"])):
 
 def gen_dict_extract(key: str, var: dict) -> Generator:
     """Yield all nested keys of name `key` from dict `var`."""
-    if hasattr(var,'items'):
+    if hasattr(var, "items"):
         for k, v in var.items():
             if k == key:
                 yield v
@@ -42,6 +42,14 @@ def gen_dict_extract(key: str, var: dict) -> Generator:
                 for d in v:
                     for result in gen_dict_extract(key, d):
                         yield result
+
+
+def set_pbar(pbar: tqdm, color: str, desc: str, last=False):
+    pbar.set_description(f"{color}{desc}{Color.NC}")
+    if last:
+        pbar.close()
+    else:
+        pbar.update(1)
 
 
 def gen_leaf_nodes(node: dict|list) -> Generator:
@@ -64,10 +72,10 @@ def parse_selection(selection, num_classes):
     result = set()
     groups = selection.split(",")
     for g in groups:
-        pair = g.split('-')
+        pair = g.split("-")
         first, last = int(pair[0]), int(pair[-1])
         if first < 1 or last > num_classes:
-            raise ValueError(f'Selection is out of range')
+            raise ValueError(f"Selection is out of range")
         result.update(range(int(first), int(last)+1))
     return result
 
@@ -79,23 +87,23 @@ def select_classes(p: Piazza) -> tuple[list[ClassInfo], set[int]]:
         print(f"{i+1}: {str(classes[-1])}")
 
     print(f"\n{Color.MAGENTA}Select the classes you would like to archive."+\
-          f"\nExamples:\t1\t5-7\t9-12{Color.NC}")
+          f"\nExample: 1,5-7,9-12{Color.NC}")
 
     try:
-        return classes, parse_selection(input('>>> '), len(classes))
+        return classes, parse_selection(input(">>> "), len(classes))
     except Exception as e:
-        print(f'{Color.FAIL}Invalid selection. {e}{Color.NC}')
+        print(f"{Color.FAIL}Invalid selection. {e}{Color.NC}")
         exit(1)
 
 
 def auth() -> tuple[Optional[str], Optional[str]]:
     try:
-        f = open('SECRETS', 'r')
+        f = open("SECRETS", "r")
         secrets = json.load(f)
         f.close()
-        return secrets['email'], secrets['password']
+        return secrets["email"], secrets["password"]
     except:
-        print(f'{Color.WARNING}SECRETS file missing or invalid.{Color.NC}')
+        print(f"{Color.WARNING}SECRETS file missing or invalid.{Color.NC}")
         return None, None
 
 
@@ -104,14 +112,14 @@ def make_piazza_client() -> Piazza:
         p = Piazza()
         email, password = auth()
         p.user_login(email=email, password=password)
-        print(f'{Color.CYAN}Authenticating as {email}{Color.NC}')
+        print(f"{Color.CYAN}Authenticating as {email}{Color.NC}\n")
         return p
     except exceptions.AuthenticationError as e:
-        print(f'{Color.FAIL}Authentication Error: {e}{Color.NC}')
+        print(f"{Color.FAIL}Authentication Error: {e}{Color.NC}\n")
         exit(1)
 
 
-def save_class_info(path: str, class_info: ClassInfo):
+def archive_class_info(path: str, class_info: ClassInfo):
     try:
         info_file = open(path, "w")
         info_file.write(json.dumps(class_info.json, indent=2))
@@ -121,10 +129,10 @@ def save_class_info(path: str, class_info: ClassInfo):
         print(f"{Color.FAIL}Failed to archive class info: {e}{Color.NC}")
 
 
-def save_class_stats(path: str, network: Network) -> dict:
+def archive_class_stats(path: str, nw: Network) -> dict:
     try:
         print(f"{Color.CYAN}Fetching course statistics...{Color.NC}")
-        stats = network.get_statistics()
+        stats = nw.get_statistics()
         stats_file = open(path, "w")
         stats_file.write(json.dumps(stats, indent=2))
         stats_file.close()
@@ -135,128 +143,154 @@ def save_class_stats(path: str, network: Network) -> dict:
         return {}
 
 
-def save_class_posts(base_path: str, name: str, network: Network) -> list[dict]:
+def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
     try:
         pathlib.Path(f"{base_path}/posts").mkdir(parents=True, exist_ok=True)
 
-        cnt, posts = 0, []
-        for post_info in network.get_feed(limit=999999, offset=0)["feed"]:
-            cnt += 1
+        feed = nw.get_feed(limit=999999, offset=0)["feed"]
+        feed.sort(key=lambda info: int(info["nr"]))
 
-            path = f"{base_path}/{name}/{post_info["nr"]}.json"
+        pbar, posts = tqdm(feed), []
+        for post_info in feed:
+            post_num = post_info["nr"]
+            path = f"{base_path}/{prefix}/{post_num}.json"
+
+            filename = f"{post_num}.json"
+            subject = f"{post_info["subject"][:32]}..."
+
             if os.path.isfile(path):
-                print(f'{Color.WARNING}Path exists, skipping: {path}{Color.NC}')
-                continue
+                set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
+                post_file = open(path, "r")
+                posts.append(json.loads(post_file.read()))
+                post_file.close()
+                pbar.refresh()
+            else:
+                set_pbar(pbar, Color.GREEN, f"{post_num}.json - {subject}")
+                post = nw.get_post(post_info["id"])
+                posts_file = open(path, "w")
+                posts_file.write(json.dumps(post, indent=2))
+                posts_file.close()
+                posts.append(post)
+                time.sleep(1)
 
-            post = network.get_post(post_info["id"])
-            posts_file = open(path, "w")
-            posts_file.write(json.dumps(post, indent=2))
-            posts_file.close()
-            posts.append(post)
-            print(f"Current progress: {cnt} posts")
-            time.sleep(1)
-
-        posts.sort(key=lambda p: int(p["nr"]))
-
-        print(f"{Color.GREEN}Successfully archived {cnt} posts{Color.NC}")
+        set_pbar(pbar, Color.GREEN, f"Successfully archived {len(feed)} posts", last=True)
         return posts
     except Exception as e:
         print(f"{Color.FAIL}Failed to archive posts: {e}{Color.NC}")
         return []
 
 
-def save_class_users(path: str, posts: list[dict], network: Network) -> list[dict]:
+def archive_users(path: str, posts: list[dict], nw: Network) -> list[dict]:
     try:
         uids = set()
         for post in posts:
             for uid in gen_dict_extract("uid", post):
                 uids.add(uid)
-        users = network.get_users(list(uids))
+        users = nw.get_users(list(uids))
         users_file = open(path, "w")
         users_file.write(json.dumps(users, indent=2))
-        print(f"{Color.GREEN}Successfully archived {len(uids)} users{Color.NC}")
         return users
     except Exception as e:
         print(f"{Color.FAIL}Failed to archive users: {e}{Color.NC}")
         return []
 
 
-def save_user_photos(path: str, users: list[dict]):
+def archive_user_photos(path: str, users: list[dict]):
     pathlib.Path(path).mkdir(parents=True, exist_ok=True)
 
-    for i, user in enumerate(users):
+    pbar = tqdm(users)
+    for user in users:
         url = user["photo_url"]
-        dst = f"{path}/{user['photo']}"
+        uid = user["id"]
+        filename = user["photo"]
+        dst = f"{path}/{filename}"
+
         if os.path.isfile(dst):
-            print(f'{Color.WARNING}Path exists, skipping: {dst}{Color.NC}')
+            set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
             continue
         elif url:
-            print(f"Current progress: {i+1} photos")
+            set_pbar(pbar, Color.GREEN, f"User {uid}, photo: {filename}")
             res = requests.get(url)
             f = open(dst, "wb")
             f.write(res.content)
             f.close()
+        else:
+            set_pbar(pbar, Color.WARNING, f"User {uid}, photo: null")
+
+    set_pbar(pbar, Color.GREEN, f"Successfully archived {len(users)} users", last=True)
 
 
 def extract_links(posts: dict) -> list[str]:
     """Extract links from posts json"""
-    leaf_text = ''.join([str(node) for node in gen_leaf_nodes(posts)])
+    leaf_text = "".join([str(node) for node in gen_leaf_nodes(posts)])
     r = r"(?:(?:http[s]?://)?(?:piazza\.com))?/redirect/s3\?bucket=uploads[^\'\"\s)]*"
     links = re.findall(r, leaf_text)
     return list(set(links))
 
 
-def convert_piazza_s3_redirects(posts: list[dict], base_path: str, url_prefix: str) -> str:
-    """Extract s3 assets and return new posts json text with links replaced"""
+def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
+    """Extract s3 assets from posts and return posts json with converted urls"""
 
     posts_json_str = json.dumps({ "posts": posts }, indent=2)
     links = extract_links(json.loads(posts_json_str))
-    num_links = len(links)
 
-    for i, link in enumerate(links):
+    pbar = tqdm(links)
+    for link in links:
         decoded = unquote(link[link.find("prefix=") + len("prefix="):])
         posts_json_str = posts_json_str.replace(link, f"{url_prefix}/{decoded}")
-        if not os.path.isfile(decoded):
+        dst = f"{base_path}/{url_prefix}/{decoded}"
+        dir, filename = os.path.split(dst)
+
+        if not os.path.isfile(dst):
+            set_pbar(pbar, Color.GREEN, filename)
             url = f"https://piazza.com{link}" if link[0] == "/" else link
-            print(f"Downloading {i+1}/{num_links}: {url}")
             res = requests.get(url)
-            prefix, filename = os.path.split(decoded)
-            prefix = f"{url_prefix}/{prefix}"
-            pathlib.Path(f"{base_path}/{prefix}").mkdir(parents=True, exist_ok=True)
-            f = open(f"{base_path}/{prefix}/{filename}", "wb")
+            pathlib.Path(dir).mkdir(parents=True, exist_ok=True)
+            f = open(dst, "wb")
             f.write(res.content)
             f.close()
         else:
-            print(f"Path exists, skipping: {decoded}")
+            set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
 
+    set_pbar(pbar, Color.GREEN, f"Successfully archived {len(links)} assets", last=True)
     return posts_json_str
 
 
 def main(cwd):
-    print(f'{Color.MAGENTA}Welcome to the Piazza Archiver!{Color.NC}')
+    banner = f"\n{Color.MAGENTA}----------------------------------{Color.NC}\n"+\
+               f"{Color.MAGENTA}Welcome to the Piazzabox Archiver!{Color.NC}\n"+\
+               f"{Color.MAGENTA}----------------------------------{Color.NC}\n"
 
+    print(banner)
     p = make_piazza_client()
     classes, selection = select_classes(p)
 
     for i in selection:
         curr_class = classes[i-1]
-        print(f'{Color.BLUE}Archiving {str(curr_class)}{Color.NC}')
-
         curr_path = f"{cwd}/{str(curr_class)}"
         pathlib.Path(curr_path).mkdir(parents=True, exist_ok=True)
 
+        print(f"\n{Color.BOLD}{Color.CYAN}{str(curr_class)}:{Color.NC}")
         network = p.network(curr_class.id)
-        save_class_info(f"{curr_path}/info.json", curr_class)
-        save_class_stats(f"{curr_path}/stats.json", network)
 
-        posts = save_class_posts(curr_path, "posts", network)
+        print(f"\n{Color.BLUE}Archiving class info {Color.NC}")
+        archive_class_info(f"{curr_path}/info.json", curr_class)
+
+        print(f"\n{Color.BLUE}Archiving class stats {Color.NC}")
+        archive_class_stats(f"{curr_path}/stats.json", network)
+
+        print(f"\n{Color.BLUE}Archiving class posts{Color.NC}")
+        posts = archive_posts(curr_path, "posts", network)
+
+        print(f"\n{Color.BLUE}Archiving assets from posts{Color.NC}")
         with open(f"{curr_path}/posts.json", "w") as f:
-            f.write(convert_piazza_s3_redirects(posts, curr_path, "assets"))
+            f.write(archive_assets(posts, curr_path, "assets"))
 
-        users = save_class_users(f"{curr_path}/users.json", posts, network)
-        save_user_photos(f"{curr_path}/assets", users)
+        print(f"\n{Color.BLUE}Archiving users {Color.NC}")
+        users = archive_users(f"{curr_path}/users.json", posts, network)
+        archive_user_photos(f"{curr_path}/assets", users)
 
-    print(f"{Color.GREEN}Completed!{Color.NC}")
+    print(f"\n{Color.GREEN}Archival completed!{Color.NC}")
 
 
 if __name__ == "__main__":
