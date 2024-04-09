@@ -98,12 +98,12 @@ def select_classes(p: Piazza) -> tuple[list[ClassInfo], set[int]]:
 
 def auth() -> tuple[Optional[str], Optional[str]]:
     try:
-        f = open("SECRETS", "r")
+        f = open("AUTH.json", "r")
         secrets = json.load(f)
         f.close()
         return secrets["email"], secrets["password"]
     except:
-        print(f"{Color.WARNING}SECRETS file missing or invalid.{Color.NC}")
+        print(f"{Color.WARNING}AUTH.json file missing or invalid.{Color.NC}")
         return None, None
 
 
