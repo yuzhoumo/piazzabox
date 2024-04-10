@@ -6,6 +6,13 @@ const formatDate = (dateStr) => {
   return `${month}/${day}/${year}`;
 };
 
+const getUsers = async () => {
+  const users = (await (await fetch("/users.json")).json());
+  const userMap = new Map();
+  users.forEach(user => { userMap.set(user.id, user)});
+  return userMap;
+};
+
 const getPosts = async () => {
   return (await (await fetch("/posts.json")).json()).posts;
 };
@@ -87,7 +94,7 @@ function getAnonIcon(anonUID, postID) {
   return getAnonProfile(anonUID, postID).icon;
 }
 
-function getUserIcon(uid) {
-  // TODO(joe): implement
-  return "/assets/icons/default.svg";
+function getUserIcon(uid, userMap) {
+  const filename = userMap.get(uid)?.photo ?? "icons/default.svg";
+  return "/assets/" + filename;
 }

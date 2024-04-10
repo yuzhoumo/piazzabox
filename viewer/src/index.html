@@ -10,8 +10,8 @@
   <body>
     <div
       class="grid grid-cols-4"
-      x-data="{ posts: [], currentPost: { history: [{ subject: '', content: '' }], created: '' } }"
-      x-init="posts = await getPosts(); currentPost = posts[0]"
+      x-data="{ userMap: new Map(), posts: [], currentPost: { history: [{ subject: '', content: '' }], created: '' } }"
+      x-init="userMap = await getUsers(); posts = await getPosts(); currentPost = posts[0]"
     >
       <!-- posts list -->
       <div class="col-span-1 h-[100vh] overflow-y-scroll bg-gray-800">
@@ -126,7 +126,7 @@
             <div class="flex gap-x-2 text-sm">
               <span
                 class="font-bold"
-                x-text="ianswer.uid_a ? getAnonName(ianswer.uid_a, currentPost.id) : ianswer.uid"
+                x-text="ianswer.uid_a ? getAnonName(ianswer.uid_a, currentPost.id) : userMap.get(ianswer.uid)?.name"
               ></span>
               <span x-text="formatDate(ianswer.created)"></span>
             </div>
@@ -163,13 +163,13 @@
               <div class="flex flex-row gap-x-2 align-top">
                 <img
                   class="mt-1 h-10 w-10 border border-gray-500"
-                  :src="fIsAnon ? getAnonIcon(fuid, currentPost.id) : getUserIcon(fuid)"
+                  :src="fIsAnon ? getAnonIcon(fuid, currentPost.id) : getUserIcon(fuid, userMap)"
                 />
                 <div class="space-y-1">
                   <div class="flex gap-x-2 text-sm">
                     <span
                       class="font-bold"
-                      x-text="fIsAnon ? getAnonName(fuid, currentPost.id) : fuid"
+                      x-text="fIsAnon ? getAnonName(fuid, currentPost.id) : userMap.get(fuid)?.name"
                     ></span>
                     <span x-text="formatDate(followup.created)"></span>
                   </div>
@@ -200,13 +200,13 @@
                   <div class="flex flex-row gap-x-2 align-top">
                     <img
                       class="mt-1 h-10 w-10 border border-gray-500"
-                      :src="isAnon ? getAnonIcon(uid, currentPost.id) : getUserIcon(uid)"
+                      :src="isAnon ? getAnonIcon(uid, currentPost.id) : getUserIcon(uid, userMap)"
                     />
                     <div class="space-y-1">
                       <div class="flex gap-x-2 text-sm">
                         <span
                           class="font-bold"
-                          x-text="isAnon ? getAnonName(child.uid_a, currentPost.id) : uid"
+                          x-text="isAnon ? getAnonName(child.uid_a, currentPost.id) : userMap.get(uid)?.name"
                         ></span>
                         <span x-text="formatDate(child.created)"></span>
                       </div>
