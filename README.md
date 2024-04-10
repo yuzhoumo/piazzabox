@@ -12,7 +12,8 @@ Built with Python and Alpine.js + Tailwind.
 1. Rename the `secrets.template.json` file to `secrets.json` and fill in your
    email and password for Piazza.
 2. Run `python3 piazzabox.py` and choose Piazza courses to archive.
-3. Open the generated `index.html` (alternatively, host this somewhere).
+3. Open the generated html found in the `/archive` folder (alternatively,
+   host this somewhere).
 
 If Piazzabox fails due to network erros or is interrupted while archiving,
 simply retry and Piazzabox will pick up where it left off.
@@ -20,7 +21,8 @@ simply retry and Piazzabox will pick up where it left off.
 ### Installation
 
 ```sh
-python3 -m venv venv && source ./venv/bin/activate
+python3 -m venv venv
+source ./venv/bin/activate
 pip install -r requirements.txt
 ```
 
