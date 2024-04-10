@@ -14,7 +14,7 @@ import os
 import re
 
 PIAZZA_RATE_LIMIT = 1
-MAX_PBAR_DESC_LEN = 32
+MAX_PBAR_DESC_LEN = 40
 SECRETS_FILENAME = "secrets.json"
 STARTUP_BANNER = \
 """
@@ -85,7 +85,7 @@ def gen_leaf_nodes(node: dict|list) -> Generator:
 
 def set_pbar(pbar: tqdm, color: str, desc: str, last=False):
     """Update tqdm progress bar by one tick (close if last=True)."""
-    formatted = f"{desc[:MAX_PBAR_DESC_LEN-3].strip()}"
+    formatted = f"{desc[:MAX_PBAR_DESC_LEN-4].strip()}"
     if len(desc) > MAX_PBAR_DESC_LEN:
         formatted = f"{formatted}..."
     pbar.set_description(f"{color}{formatted.ljust(MAX_PBAR_DESC_LEN)}{Color.NC}")
@@ -119,8 +119,9 @@ def select_classes(p: Piazza) -> tuple[list[ClassInfo], set[int]]:
         classes.append(ClassInfo(num=c["num"], term=c["term"], id=c["id"], json=c))
         print(f"{i+1}: {str(classes[-1])}")
 
-    print(f"\n{Color.MAGENTA}Select the classes you would like to archive."+\
-          f"\nExample: 1,5-7,9-12{Color.NC}")
+    print(f"\n{Color.MAGENTA}Enter the classes you would like to archive"+\
+          f" as a comma-separated list.\nEntries can be either numbers or"+\
+          f" ranges.\nExample: 1,5-7,9-12{Color.NC}")
 
     try:
         return classes, parse_selection(input(">>> "), len(classes))
@@ -261,6 +262,7 @@ def archive_users(path: str, posts: list[dict], nw: Network) -> list[dict]:
         users = nw.get_users(list(uids))
         users_file = open(path, "w")
         users_file.write(json.dumps(users, indent=2))
+        print(f"{Color.GREEN}Successfully archived {len(users)} users{Color.NC}")
         return users
     except Exception as e:
         print(f"{Color.FAIL}Failed to archive users: {e}{Color.NC}")
@@ -282,15 +284,15 @@ def archive_user_photos(path: str, users: list[dict]):
             set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
             continue
         elif url:
-            set_pbar(pbar, Color.GREEN, f"User {uid} | Photo: {filename}")
+            set_pbar(pbar, Color.GREEN, f"{filename}")
             res = requests.get(url)
             f = open(dst, "wb")
             f.write(res.content)
             f.close()
         else:
-            set_pbar(pbar, Color.WARNING, f"User {uid} | User has no photo")
+            set_pbar(pbar, Color.WARNING, f"User id {uid} has no photo")
 
-    set_pbar(pbar, Color.GREEN, f"Successfully archived {len(users)} users", last=True)
+    set_pbar(pbar, Color.GREEN, f"Successfully archived {len(users)} user photos", last=True)
 
 
 def extract_links(posts: dict) -> list[str]:
@@ -378,6 +380,8 @@ def main(cwd):
 
         print(f"\n{Color.BLUE}Archiving users {Color.NC}")
         users = archive_users(f"{curr_path}/users.json", posts, network)
+
+        print(f"\n{Color.BLUE}Archiving user photos {Color.NC}")
         archive_user_photos(f"{curr_path}/assets", users)
 
     print(f"\n{Color.GREEN}Archival completed!{Color.NC}")
