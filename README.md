@@ -7,17 +7,15 @@ Built with Python and Alpine.js + Tailwind.
 
 ![screenshot](screenshot.png)
 
-
 ### Usage
 
 1. Rename the `secrets.template.json` file to `secrets.json` and fill in your
    email and password for Piazza.
 2. Run `python3 piazzabox.py` and choose Piazza courses to archive.
-3. View the generated `index.html` (alternatively, host this somewhere).
+3. Open the generated `index.html` (alternatively, host this somewhere).
 
-If the download is interrupted or fails due to network errors, simply retry
-and Piazzabox will pick up where it left off.
-
+If Piazzabox fails due to network erros or is interrupted while archiving,
+simply retry and Piazzabox will pick up where it left off.
 
 ### Installation
 
@@ -25,6 +23,8 @@ and Piazzabox will pick up where it left off.
 python3 -m venv venv && source ./venv/bin/activate
 pip install -r requirements.txt
 ```
+
+### Development
 
 There is no need to install dev dependencies for the viewer unless you are
 making changes to it. Use the following to install dev dependencies:

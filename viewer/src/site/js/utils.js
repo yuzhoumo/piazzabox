@@ -23,15 +23,47 @@ const getReplies = (children) => {
   );
 };
 
-const getInstructorAnswer = (children) => {
+const getInstructorAnswer = (currentPost) => {
+  const children = currentPost?.children;
   const answer = (children ?? []).filter((c) => c.type === "i_answer");
   return answer.length > 0 ? answer[0].history[0] : {};
 };
 
-const getStudentAnswer = (children) => {
+function getInstAnsContent(currentPost) {
+  return getInstructorAnswer(currentPost)?.content;
+}
+
+function getInstAnsDate(currentPost) {
+  const created = getInstructorAnswer(currentPost)?.created
+  return created ? formatDate(created) : "";
+}
+
+function getInstAnsName(currentPost, userMap) {
+  const ans = getInstructorAnswer(currentPost)
+  const name = ans.uid_a ? getAnonName(ans.uid_a, currentPost.id) : userMap?.get(ans.uid)?.name;
+  return name;
+}
+
+const getStudentAnswer = (currentPost) => {
+  const children = currentPost?.children;
   const answer = (children ?? []).filter((c) => c.type === "s_answer");
   return answer.length > 0 ? answer[0].history[0] : {};
 };
+
+function getStudAnsContent(currentPost) {
+  return getStudentAnswer(currentPost)?.content;
+}
+
+function getStudAnsDate(currentPost) {
+  const created = getStudentAnswer(currentPost)?.created
+  return created ? formatDate(created) : "";
+}
+
+function getStudAnsName(currentPost, userMap) {
+  const ans = getStudentAnswer(currentPost)
+  const name = ans.uid_a ? getAnonName(ans.uid_a, currentPost.id) : userMap?.get(ans.uid)?.name;
+  return name;
+}
 
 function getAnonProfile(anonUID, postID) {
   const anonNames = [

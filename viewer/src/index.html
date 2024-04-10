@@ -85,9 +85,7 @@
         <!-- student answer -->
         <div
           class="mx-4 space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
-          x-data="{ sanswer: {} }"
-          x-init="sanswer = getStudentAnswer(currentPost?.children)"
-          x-show="Boolean(sanswer.content)"
+          x-show="Boolean(getStudentAnswer(currentPost)?.content)"
         >
           <h1
             class="text-xl font-bold underline decoration-yellow-500 decoration-solid"
@@ -98,13 +96,13 @@
             <div class="flex gap-x-2 text-sm">
               <span
                 class="font-bold"
-                x-text="sanswer.uid_a ? getAnonName(sanswer.uid_a, currentPost.id) : sanswer.uid"
+                x-text="getStudAnsName(currentPost, userMap)"
               ></span>
-              <span x-text="formatDate(sanswer.created)"></span>
+              <span x-text="getStudAnsDate(currentPost)"></span>
             </div>
             <span
               class="text-sm"
-              x-html="marked.parse(sanswer.content ?? '')"
+              x-html="marked.parse(getStudAnsContent(currentPost) ?? '')"
             ></span>
           </div>
         </div>
@@ -112,9 +110,7 @@
         <!-- instructor answer -->
         <div
           class="mx-4 space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
-          x-data="{ ianswer: {} }"
-          x-init="ianswer = getInstructorAnswer(currentPost?.children)"
-          x-show="Boolean(ianswer.content)"
+          x-show="Boolean(getInstructorAnswer(currentPost)?.content)"
         >
           <h1
             class="text-xl font-bold underline decoration-yellow-500 decoration-solid"
@@ -125,13 +121,13 @@
             <div class="flex gap-x-2 text-sm">
               <span
                 class="font-bold"
-                x-text="ianswer.uid_a ? getAnonName(ianswer.uid_a, currentPost.id) : userMap.get(ianswer.uid)?.name"
+                x-text="getInstAnsName(currentPost, userMap)"
               ></span>
-              <span x-text="formatDate(ianswer.created)"></span>
+              <span x-text="getInstAnsDate(currentPost)"></span>
             </div>
             <span
               class="text-wrap text-sm"
-              x-html="marked.parse(ianswer.content ?? '')"
+              x-html="marked.parse(getInstAnsContent(currentPost) ?? '')"
             ></span>
           </div>
         </div>
