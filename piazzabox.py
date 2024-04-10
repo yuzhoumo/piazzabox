@@ -347,6 +347,14 @@ def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
 
 
 def build_site(base_path: str):
+    """
+    Copy viewer source and generate a javascript file containing the posts
+    json and users json from the archive. This is done to avoid CORS so that
+    the site can be opened locally without the need to run a webserver.
+    """
+    if os.path.exists(f"{base_path}/index.html"):
+        print(f"{Color.WARNING}Site already exists{Color.NC}")
+        return
     viewer_src = "viewer/src"
     if not os.path.exists(viewer_src):
         raise FileNotFoundError("viewer directory not found")
@@ -369,7 +377,7 @@ def build_site(base_path: str):
 
 
 def main():
-    print(f"\n{Color.BLUE}{STARTUP_BANNER}{Color.NC}\n")
+    print(f"\n{Color.BLUE}{STARTUP_BANNER}{Color.NC}")
     p = make_piazza_client()
     classes, selection = select_classes(p)
 
