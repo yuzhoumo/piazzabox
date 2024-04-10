@@ -6,12 +6,14 @@ from collections import namedtuple
 from typing import Generator, Optional
 from urllib.parse import unquote
 from tqdm import tqdm
+import shutil
 import requests
 import time
 import json
 import pathlib
 import os
 import re
+
 
 PIAZZA_RATE_LIMIT = 1
 MAX_PBAR_DESC_LEN = 40
@@ -24,13 +26,6 @@ STARTUP_BANNER = \
 ██╔═══╝ ██║██╔══██║ ███╔╝   ███╔╝  ██╔══██║██╔══██╗██║   ██║ ██╔██╗
 ██║     ██║██║  ██║███████╗███████╗██║  ██║██████╔╝╚██████╔╝██╔╝ ██╗
 ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝
-
- █████╗ ██████╗  ██████╗██╗  ██╗██╗██╗   ██╗███████╗██████╗
-██╔══██╗██╔══██╗██╔════╝██║  ██║██║██║   ██║██╔════╝██╔══██╗
-███████║██████╔╝██║     ███████║██║██║   ██║█████╗  ██████╔╝
-██╔══██║██╔══██╗██║     ██╔══██║██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
-██║  ██║██║  ██║╚██████╗██║  ██║██║ ╚████╔╝ ███████╗██║  ██║
-╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
 """
 
 
@@ -351,15 +346,37 @@ def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
     return posts_json_str
 
 
-def main(cwd):
+def build_site(base_path: str):
+    viewer_src = "viewer/src"
+    if not os.path.exists(viewer_src):
+        raise FileNotFoundError("viewer directory not found")
+    for src_file in os.listdir(viewer_src):
+        src_path = f"{viewer_src}/{src_file}"
+        if os.path.isfile(src_path):
+            shutil.copy(src_path, f"{base_path}/{src_file}")
+        else:
+            shutil.copytree(src_path, f"{base_path}/{src_file}")
+    with open (f"{base_path}/site/js/generated.template.js") as f:
+        template = f.read()
+    with open(f"{base_path}/assets/posts.json", "r") as f:
+        template = template.replace("{{POSTS}}", f.read())
+    with open(f"{base_path}/assets/users.json", "r") as f:
+        template = template.replace("{{USERS}}", f.read())
+    with open(f"{base_path}/site/js/generated.js", "w") as f:
+        f.write(template)
+    os.remove(f"{base_path}/site/js/generated.template.js")
+    print(f"{Color.GREEN}Successfully built site")
+
+
+def main():
     print(f"\n{Color.BLUE}{STARTUP_BANNER}{Color.NC}\n")
     p = make_piazza_client()
     classes, selection = select_classes(p)
 
     for i in selection:
         curr_class = classes[i-1]
-        curr_path = f"{cwd}/{str(curr_class)}"
-        pathlib.Path(curr_path).mkdir(parents=True, exist_ok=True)
+        curr_path = f"{os.getcwd()}/archive/{str(curr_class)}"
+        pathlib.Path(f"{curr_path}/assets").mkdir(parents=True, exist_ok=True)
 
         print(f"\n{Color.BOLD}{Color.CYAN}{str(curr_class)}:{Color.NC}")
         network = p.network(curr_class.id)
@@ -372,11 +389,11 @@ def main(cwd):
 
         print(f"\n{Color.BLUE}Archiving class posts{Color.NC}", end=" ")
         print(f"{Color.WARNING}(rate limit: {PIAZZA_RATE_LIMIT} req/s){Color.NC}")
-        posts = archive_posts(curr_path, "original_posts", network)
+        posts = archive_posts(curr_path, "original", network)
 
         print(f"\n{Color.BLUE}Archiving assets from posts{Color.NC}")
         with open(f"{curr_path}/assets/posts.json", "w") as f:
-            f.write(archive_assets(posts, curr_path, "assets/s3"))
+            f.write(archive_assets(posts, curr_path, "assets"))
 
         print(f"\n{Color.BLUE}Archiving users {Color.NC}")
         users = archive_users(f"{curr_path}/assets/users.json", posts, network)
@@ -384,10 +401,12 @@ def main(cwd):
         print(f"\n{Color.BLUE}Archiving user photos {Color.NC}")
         archive_user_photos(f"{curr_path}/assets/photos", users)
 
+        print(f"\n{Color.BLUE}Building site{Color.NC}")
+        build_site(curr_path)
+
     print(f"\n{Color.GREEN}Archival completed!{Color.NC}")
 
 
 if __name__ == "__main__":
-    CURRENT_WORKING_DIR = os.path.dirname(os.path.realpath(__file__))
-    main(CURRENT_WORKING_DIR)
+    main()
 
