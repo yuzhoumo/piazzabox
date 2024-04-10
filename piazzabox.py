@@ -17,6 +17,7 @@ import re
 
 PIAZZA_RATE_LIMIT = 1
 MAX_PBAR_DESC_LEN = 40
+MAX_DOWNLOAD_RETRIES = 3
 SECRETS_FILENAME = "secrets.json"
 STARTUP_BANNER = \
 """
@@ -78,7 +79,7 @@ def gen_leaf_nodes(node: dict|list) -> Generator:
         yield [node]
 
 
-def set_pbar(pbar: tqdm, color: str, desc: str, last=False):
+def set_pbar(pbar: tqdm, color: str, desc: str, last=False, no_update=False):
     """Update tqdm progress bar by one tick (close if last=True)."""
     formatted = f"{desc[:MAX_PBAR_DESC_LEN-4].strip()}"
     if len(desc) > MAX_PBAR_DESC_LEN:
@@ -86,7 +87,7 @@ def set_pbar(pbar: tqdm, color: str, desc: str, last=False):
     pbar.set_description(f"{color}{formatted.ljust(MAX_PBAR_DESC_LEN)}{Color.NC}")
     if last:
         pbar.close()
-    else:
+    elif not no_update:
         pbar.update(1)
 
 
@@ -298,6 +299,16 @@ def extract_links(posts: dict) -> list[str]:
     return list(set(links))
 
 
+def retry_download(url, timeout=PIAZZA_RATE_LIMIT, max_retries=MAX_DOWNLOAD_RETRIES) -> requests.Response:
+    """Retry a get request."""
+    for _ in range(max_retries):
+        time.sleep(timeout)
+        res = grequests.map([grequests.get(url)])[0]
+        if res is not None and res.ok:
+            return res
+    raise ConnectionError(f"Request failed >{max_retries} times: {url}")
+
+
 def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
     """Extract s3 assets from posts and return posts json with converted urls"""
 
@@ -334,7 +345,9 @@ def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
         dir, filename = os.path.split(dst)
 
         if res is None:
-            raise ValueError(f"Request failed: {reqs[i]}")
+            set_pbar(pbar, Color.FAIL, f"Failed, retrying: {filename}",
+                     last=True, no_update=True)
+            res = retry_download(make_url(link))
 
         set_pbar(pbar, Color.GREEN, filename)
         pathlib.Path(dir).mkdir(parents=True, exist_ok=True)
