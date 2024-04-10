@@ -1,34 +1,33 @@
 # Piazzabox
 
-Piazza course archiver and statically hostable viewer
+Piazzabox is an archiver for Piazza courses. Piazzabox archives posts and
+images from Piazza and generates a static site for viewing.
+
+Built with Python and Alpine.js + Tailwind.
 
 ![screenshot](screenshot.png)
 
-- archive: Archive courses to json and download assets
-- viewer: Renders archived piazza courses. Built with Alpine.js + Tailwind.
 
 ### Usage
 
-1. Use `python3 archive.py` to archive a Piazza course.
-2. Copy the resulting `assets/` directory into `viewer/src`.
-3. Run `python3 -m http.server` in the `viewer/src` directory to view it
-   locally at `localhost:8000` (alternatively, host this directory somewhere).
+1. Rename the `secrets.template.json` file to `secrets.json` and fill in your
+   email and password for Piazza.
+2. Run `python3 piazzabox.py` and choose Piazza courses to archive.
+3. View the generated `index.html` (alternatively, host this somewhere).
+
+If the download is interrupted or fails due to network errors, simply retry
+and Piazzabox will pick up where it left off.
+
 
 ### Installation
 
-Archiver:
-
 ```sh
-cd archive
-python3 -m venv archive-venv
-source ./archive-venv/bin/activate
+python3 -m venv venv && source ./venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Viewer:
-
-The viewer is static and can be hosted as-is. Install dev dependencies only if
-you are planning to make changes.
+There is no need to install dev dependencies for the viewer unless you are
+making changes to it. Use the following to install dev dependencies:
 
 ```sh
 cd viewer
@@ -36,8 +35,3 @@ pnpm install
 # Important: Run after making changes to re-build tailwind css
 # pnpm run build
 ```
-
-### TODO
-
-- support multiple posts.json
-- search posts
