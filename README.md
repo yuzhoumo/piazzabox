@@ -10,7 +10,7 @@ Piazza course archiver and statically hostable viewer
 ### Usage
 
 1. Use `python3 archive.py` to archive a Piazza course.
-2. Move the resulting `assets/`, `posts.json`, and `users.json` into the `viewer/src` directory.
+2. Copy the resulting `assets/` directory into `viewer/src`.
 3. Run `python3 -m http.server` in the `viewer/src` directory to view it
    locally at `localhost:8000` (alternatively, host this directory somewhere).
 

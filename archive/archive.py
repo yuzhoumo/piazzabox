@@ -207,7 +207,7 @@ def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
     Returns the a list of post jsons (read from disk if it already exists).
     """
     try:
-        pathlib.Path(f"{base_path}/posts").mkdir(parents=True, exist_ok=True)
+        pathlib.Path(f"{base_path}/{prefix}").mkdir(parents=True, exist_ok=True)
 
         feed = nw.get_feed(limit=999999, offset=0)["feed"]
         feed.sort(key=lambda info: int(info["nr"]))
@@ -365,24 +365,24 @@ def main(cwd):
         network = p.network(curr_class.id)
 
         print(f"\n{Color.BLUE}Archiving class info{Color.NC}")
-        archive_class_info(f"{curr_path}/info.json", curr_class)
+        archive_class_info(f"{curr_path}/assets/info.json", curr_class)
 
         print(f"\n{Color.BLUE}Archiving class stats{Color.NC}")
-        archive_class_stats(f"{curr_path}/stats.json", network)
+        archive_class_stats(f"{curr_path}/assets/stats.json", network)
 
         print(f"\n{Color.BLUE}Archiving class posts{Color.NC}", end=" ")
         print(f"{Color.WARNING}(rate limit: {PIAZZA_RATE_LIMIT} req/s){Color.NC}")
-        posts = archive_posts(curr_path, "posts", network)
+        posts = archive_posts(curr_path, "original_posts", network)
 
         print(f"\n{Color.BLUE}Archiving assets from posts{Color.NC}")
-        with open(f"{curr_path}/posts.json", "w") as f:
-            f.write(archive_assets(posts, curr_path, "assets"))
+        with open(f"{curr_path}/assets/posts.json", "w") as f:
+            f.write(archive_assets(posts, curr_path, "assets/s3"))
 
         print(f"\n{Color.BLUE}Archiving users {Color.NC}")
-        users = archive_users(f"{curr_path}/users.json", posts, network)
+        users = archive_users(f"{curr_path}/assets/users.json", posts, network)
 
         print(f"\n{Color.BLUE}Archiving user photos {Color.NC}")
-        archive_user_photos(f"{curr_path}/assets", users)
+        archive_user_photos(f"{curr_path}/assets/photos", users)
 
     print(f"\n{Color.GREEN}Archival completed!{Color.NC}")
 

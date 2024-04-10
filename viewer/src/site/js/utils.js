@@ -7,14 +7,14 @@ const formatDate = (dateStr) => {
 };
 
 const getUsers = async () => {
-  const users = (await (await fetch("/users.json")).json());
+  const users = (await (await fetch("/assets/users.json")).json());
   const userMap = new Map();
   users.forEach(user => { userMap.set(user.id, user)});
   return userMap;
 };
 
 const getPosts = async () => {
-  return (await (await fetch("/posts.json")).json()).posts;
+  return (await (await fetch("/assets/posts.json")).json()).posts;
 };
 
 const getReplies = (children) => {
@@ -36,39 +36,39 @@ const getStudentAnswer = (children) => {
 function getAnonProfile(anonUID, postID) {
   const anonNames = [
     {
-      icon: "/assets/icons/anon_icon-01.jpg",
+      icon: "/site/img/anon_icon-01.jpg",
       name: "Anonymous Atom",
     },
     {
-      icon: "/assets/icons/anon_icon-02.jpg",
+      icon: "/site/img/anon_icon-02.jpg",
       name: "Anonymous Helix",
     },
     {
-      icon: "/assets/icons/anon_icon-03.jpg",
+      icon: "/site/img/anon_icon-03.jpg",
       name: "Anonymous Mouse",
     },
     {
-      icon: "/assets/icons/anon_icon-04.jpg",
+      icon: "/site/img/anon_icon-04.jpg",
       name: "Anonymous Beaker",
     },
     {
-      icon: "/assets/icons/anon_icon-05.jpg",
+      icon: "/site/img/anon_icon-05.jpg",
       name: "Anonymous Calc",
     },
     {
-      icon: "/assets/icons/anon_icon-06.jpg",
+      icon: "/site/img/anon_icon-06.jpg",
       name: "Anonymous Comp",
     },
     {
-      icon: "/assets/icons/anon_icon-07.jpg",
+      icon: "/site/img/anon_icon-07.jpg",
       name: "Anonymous Gear",
     },
     {
-      icon: "/assets/icons/anon_icon-08.jpg",
+      icon: "/site/img/anon_icon-08.jpg",
       name: "Anonymous Scale",
     },
     {
-      icon: "/assets/icons/anon_icon-09.jpg",
+      icon: "/site/img/anon_icon-09.jpg",
       name: "Anonymous Poet",
     },
   ];
@@ -95,6 +95,6 @@ function getAnonIcon(anonUID, postID) {
 }
 
 function getUserIcon(uid, userMap) {
-  const filename = userMap.get(uid)?.photo ?? "icons/default.svg";
-  return "/assets/" + filename;
+  const filename = userMap.get(uid)?.photo;
+  return filename ? `/assets/photos/${filename}` : "/site/img/default.svg";
 }
