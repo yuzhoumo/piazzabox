@@ -1,4 +1,4 @@
-const formatDate = (dateStr) => {
+var formatDate = (dateStr) => {
   const date = new Date(dateStr);
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
   const day = (date.getDay() + 1).toString().padStart(2, "0");
@@ -6,18 +6,7 @@ const formatDate = (dateStr) => {
   return `${month}/${day}/${year}`;
 };
 
-// const getUsers = async () => {
-//   const users = (await (await fetch("assets/users.json")).json());
-//   const userMap = new Map();
-//   users.forEach(user => { userMap.set(user.id, user)});
-//   return userMap;
-// };
-
-// const getPosts = async () => {
-//   return (await (await fetch("assets/posts.json")).json());
-// };
-
-const getReplies = (children) => {
+var getReplies = (children) => {
   return (children ?? []).filter(
     (c) => c.type === "followup" || c.type === "feedback",
   );
@@ -29,43 +18,43 @@ const getInstructorAnswer = (currentPost) => {
   return answer.length > 0 ? answer[0].history[0] : {};
 };
 
-function getInstAnsContent(currentPost) {
+var getInstAnsContent = (currentPost) => {
   return getInstructorAnswer(currentPost)?.content;
 }
 
-function getInstAnsDate(currentPost) {
+var getInstAnsDate = (currentPost) => {
   const created = getInstructorAnswer(currentPost)?.created
   return created ? formatDate(created) : "";
 }
 
-function getInstAnsName(currentPost, userMap) {
+var getInstAnsName = (currentPost, userMap) => {
   const ans = getInstructorAnswer(currentPost)
   const name = ans.uid_a ? getAnonName(ans.uid_a, currentPost.id) : userMap?.get(ans.uid)?.name;
   return name;
 }
 
-const getStudentAnswer = (currentPost) => {
+var getStudentAnswer = (currentPost) => {
   const children = currentPost?.children;
   const answer = (children ?? []).filter((c) => c.type === "s_answer");
   return answer.length > 0 ? answer[0].history[0] : {};
 };
 
-function getStudAnsContent(currentPost) {
+var getStudAnsContent = (currentPost) => {
   return getStudentAnswer(currentPost)?.content;
 }
 
-function getStudAnsDate(currentPost) {
+var getStudAnsDate = (currentPost) => {
   const created = getStudentAnswer(currentPost)?.created
   return created ? formatDate(created) : "";
 }
 
-function getStudAnsName(currentPost, userMap) {
+var getStudAnsName = (currentPost, userMap) => {
   const ans = getStudentAnswer(currentPost)
   const name = ans.uid_a ? getAnonName(ans.uid_a, currentPost.id) : userMap?.get(ans.uid)?.name;
   return name;
 }
 
-function getAnonProfile(anonUID, postID) {
+var getAnonProfile = (anonUID, postID) => {
   const anonNames = [
     {
       icon: "site/img/anon_icon-01.jpg",
@@ -118,15 +107,15 @@ function getAnonProfile(anonUID, postID) {
   };
 }
 
-function getAnonName(anonUID, postID) {
+var getAnonName = (anonUID, postID) => {
   return getAnonProfile(anonUID, postID).name;
 }
 
-function getAnonIcon(anonUID, postID) {
+var getAnonIcon = (anonUID, postID) => {
   return getAnonProfile(anonUID, postID).icon;
 }
 
-function getUserIcon(uid, userMap) {
+var getUserIcon = (uid, userMap) => {
   const filename = userMap.get(uid)?.photo;
   return filename ? `assets/photos/${filename}` : "site/img/default.svg";
 }
