@@ -33,7 +33,7 @@
       x-init="userMap = await getUsers(); posts = await getPosts(); currentPost = posts[0]"
     >
       <!-- posts list -->
-      <div class="col-span-1 h-[100vh] overflow-y-scroll bg-gray-800">
+      <div class="col-span-1 h-[100vh] overflow-y-auto bg-gray-800">
         <template x-for="post in posts" :key="post.id">
           <div
             class="select-none space-y-1 border-x border-t border-gray-600 bg-gray-700 p-4 text-gray-200 hover:bg-gray-600"
@@ -55,7 +55,7 @@
       </div>
 
       <!-- post view -->
-      <div class="col-span-3 h-[100vh] space-y-4 overflow-y-scroll bg-gray-900">
+      <div class="col-span-3 h-[100vh] space-y-4 overflow-y-auto bg-gray-900">
         <!-- prompt to render LaTex -->
         <div class="px-4">
           <button
@@ -88,7 +88,7 @@
               ></div>
             </div>
           </div>
-          <div class="overflow-x-scroll">
+          <div class="overflow-x-auto">
             <span
               class="space-y-2 text-sm"
               x-html="marked.parse(currentPost.history[0].content)"
@@ -123,7 +123,7 @@
           >
             the students&apos; answer
           </h1>
-          <div class="space-y-1 overflow-x-scroll">
+          <div class="space-y-1 overflow-x-auto">
             <div class="flex gap-x-2 text-sm">
               <span
                 class="font-bold"
@@ -148,7 +148,7 @@
           >
             the instructors&apos; answer
           </h1>
-          <div class="space-y-1 overflow-x-scroll">
+          <div class="space-y-1 overflow-x-auto">
             <div class="flex gap-x-2 text-sm">
               <span
                 class="font-bold"
@@ -189,7 +189,7 @@
                   class="mt-1 h-10 w-10 border border-gray-500"
                   :src="fIsAnon ? getAnonIcon(fuid, currentPost.id) : getUserIcon(fuid, userMap)"
                 />
-                <div class="space-y-1 overflow-x-scroll">
+                <div class="space-y-1 overflow-x-auto">
                   <div class="flex gap-x-2 text-sm">
                     <span
                       class="font-bold"
@@ -224,7 +224,7 @@
                       class="mt-1 h-10 w-10 border border-gray-500"
                       :src="isAnon ? getAnonIcon(uid, currentPost.id) : getUserIcon(uid, userMap)"
                     />
-                    <div class="space-y-1 overflow-x-scroll">
+                    <div class="space-y-1 overflow-x-auto">
                       <div class="flex gap-x-2 text-sm">
                         <span
                           class="font-bold"
