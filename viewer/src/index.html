@@ -23,7 +23,7 @@
     <script
       type="text/javascript"
       id="MathJax-script"
-      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+      src="site/js/mathjax-3.2.2-es5-tex-mml-chtml.js"
     ></script>
   </head>
   <body>
@@ -59,7 +59,7 @@
         <!-- prompt to render LaTex -->
         <div class="px-4">
           <button
-            class="mt-4 w-[100%] rounded-md bg-green-400 px-2 py-1 text-center text-green-900 hover:bg-green-500"
+            class="text-sm mt-4 w-[100%] rounded-md bg-green-400 px-2 py-1 text-center text-green-900 hover:bg-green-500"
             x-data="{ show: false }"
             x-init="$watch('currentPost', p => { show = JSON.stringify(p).includes('$$')})"
             x-on:click="show = false; MathJax.typeset()"
