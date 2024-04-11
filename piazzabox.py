@@ -270,10 +270,11 @@ def archive_post_assets(post: dict, base_path: str, url_prefix: str, pbar_pos: i
             links_to_archive.append(link)
 
     if len(links_to_archive) == 1:
+        # Show message sooner if there is only 1 download (otherwise the message
+        # is frozen while downloading and flashes briefly when it finishes)
         filename = os.path.split(convert_link(links_to_archive[0])[1])[1]
         set_pbar(pbar, Color.GREEN, f"Downloading {filename}", no_update=True)
 
-    # Make grequests GET requests for links
     make_url = lambda p: f"https://piazza.com{p}" if p[0] == "/" else p
     reqs = [grequests.get(make_url(link)) for link in links_to_archive]
 
