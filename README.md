@@ -1,7 +1,7 @@
 # Piazzabox
 
-Piazzabox is an archiver for Piazza courses. Piazzabox archives posts and
-images from Piazza and generates a static site for viewing.
+Piazzabox is an archiver for Piazza courses. Piazzabox saves posts and linked
+assets from Piazza and generates a static site for local viewing.
 
 Built with Python and Alpine.js + Tailwind.
 
@@ -15,8 +15,8 @@ Built with Python and Alpine.js + Tailwind.
 3. Open the generated html found in the `/archive` folder (alternatively,
    host this somewhere).
 
-If Piazzabox fails due to network erros or is interrupted while archiving,
-simply retry and Piazzabox will pick up where it left off.
+If Piazzabox fails due to network errors or is otherwise interrupted while
+archiving, restart the program and it will pick up where it left off.
 
 ### Installation
 
