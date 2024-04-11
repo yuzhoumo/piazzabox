@@ -17,7 +17,8 @@ import re
 
 PIAZZA_RATE_LIMIT = 1
 MAX_PBAR_DESC_LEN = 40
-MAX_DOWNLOAD_RETRIES = 3
+MAX_DOWNLOAD_RETRIES = 10
+RETRY_BACKOFF_RATE = 0.2
 SECRETS_FILENAME = "secrets.json"
 STARTUP_BANNER = \
 """
@@ -265,30 +266,35 @@ def archive_users(path: str, posts: list[dict], nw: Network) -> list[dict]:
         return []
 
 
-def archive_user_photos(path: str, users: list[dict]):
-    """Fetch user photos from Piazza and save them to disk."""
-    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+def make_retry_handler(pbar: tqdm):
+    """Curried function with progress bar for handling grequests exceptions."""
 
-    pbar = tqdm(users, dynamic_ncols=True)
-    for user in users:
-        url = user["photo_url"]
-        uid = user["id"]
-        filename = user["photo"]
-        dst = f"{path}/{filename}"
+    def retry_request(r: grequests.AsyncRequest, e: Exception) -> requests.Response:
+        filename = os.path.split(r.url)[1]
 
-        if os.path.isfile(dst):
-            set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
-            continue
-        elif url:
-            set_pbar(pbar, Color.GREEN, f"{filename}")
-            res = requests.get(url)
-            f = open(dst, "wb")
-            f.write(res.content)
-            f.close()
-        else:
-            set_pbar(pbar, Color.WARNING, f"User id {uid} has no photo")
+        timeout = 1
+        for i in range(MAX_DOWNLOAD_RETRIES):
+            set_pbar(pbar, Color.FAIL, f"Failed, retry {i+1}: {filename}",
+                     no_update=True)
+            time.sleep(timeout)
+            res = grequests.map([r])[0]
+            if res is not None and res.ok:
+                return res
+            timeout += timeout * RETRY_BACKOFF_RATE
+        raise ConnectionError(f"Request failed >{MAX_DOWNLOAD_RETRIES} times: {e}")
 
-    set_pbar(pbar, Color.GREEN, f"Successfully archived {len(users)} user photos", last=True)
+    return retry_request
+
+
+def gen_get_requests(pbar: tqdm, reqs: list[grequests.AsyncRequest]) -> Generator:
+    """Generator for fetching files"""
+    retry_request = make_retry_handler(pbar)
+    # Fetch asynchronously, 6 at a time
+    for i, res in grequests.imap_enumerated(reqs, size=6, exception_handler=retry_request):
+        filename = os.path.split(reqs[i].url)[1]
+        if res is None:
+            raise ConnectionError(f"Failed to get: {filename}")
+        yield i, res
 
 
 def extract_links(posts: dict) -> list[str]:
@@ -297,16 +303,6 @@ def extract_links(posts: dict) -> list[str]:
     r = r"(?:(?:http[s]?://)?(?:piazza\.com))?/redirect/s3\?bucket=uploads[^\'\"\s)]*"
     links = re.findall(r, leaf_text)
     return list(set(links))
-
-
-def retry_download(url, timeout=PIAZZA_RATE_LIMIT, max_retries=MAX_DOWNLOAD_RETRIES) -> requests.Response:
-    """Retry a get request."""
-    for _ in range(max_retries):
-        time.sleep(timeout)
-        res = grequests.map([grequests.get(url)])[0]
-        if res is not None and res.ok:
-            return res
-    raise ConnectionError(f"Request failed >{max_retries} times: {url}")
 
 
 def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
@@ -334,21 +330,14 @@ def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
         else:
             links_to_archive.append(link)
 
-    # Generate grequests GET requests for links
+    # Make grequests GET requests for links
     make_url = lambda p: f"https://piazza.com{p}" if p[0] == "/" else p
     reqs = [grequests.get(make_url(link)) for link in links_to_archive]
 
-    # Fetch assets asynchronously, 8 at a time
-    for i, res in grequests.imap_enumerated(reqs, size=8):
+    for i, res in gen_get_requests(pbar, reqs):
         link = links_to_archive[i] # Indices come back in arbitrary order
         dst = convert_link(link)
         dir, filename = os.path.split(dst)
-
-        if res is None:
-            set_pbar(pbar, Color.FAIL, f"Failed, retrying: {filename}",
-                     last=True, no_update=True)
-            res = retry_download(make_url(link))
-
         set_pbar(pbar, Color.GREEN, filename)
         pathlib.Path(dir).mkdir(parents=True, exist_ok=True)
         f = open(dst, "wb")
@@ -357,6 +346,36 @@ def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
 
     set_pbar(pbar, Color.GREEN, f"Successfully archived {len(links)} assets", last=True)
     return posts_json_str
+
+
+def archive_user_photos(path: str, users: list[dict]):
+    """Fetch user photos from Piazza and save them to disk."""
+    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+
+    pbar = tqdm(users, dynamic_ncols=True)
+    users_to_archive = []
+    for user in users:
+        filename, uid = user["photo"], user["id"]
+        dst = f"{path}/{filename}"
+        if not filename:
+            set_pbar(pbar, Color.WARNING, f"User {uid} has no photo")
+        elif os.path.isfile(dst):
+            set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
+        else:
+            users_to_archive.append(user)
+
+    reqs = [grequests.get(user["photo_url"]) for user in users_to_archive]
+    for i, res in gen_get_requests(pbar, reqs):
+        user = users_to_archive[i]
+        url, filename, uid = user["photo_url"], user["photo"], user["id"]
+        dst = f"{path}/{filename}"
+        if url:
+            set_pbar(pbar, Color.GREEN, f"{filename}")
+            f = open(dst, "wb")
+            f.write(res.content)
+            f.close()
+
+    set_pbar(pbar, Color.GREEN, f"Successfully archived {len(users)} user photos", last=True)
 
 
 def build_site(base_path: str):
