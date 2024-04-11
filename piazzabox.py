@@ -198,6 +198,100 @@ def archive_class_stats(path: str, nw: Network) -> dict:
         return {}
 
 
+def make_retry_handler(pbar: tqdm):
+    """Curried function with progress bar for handling grequests exceptions."""
+
+    def retry_request(r: grequests.AsyncRequest, e: Exception) -> requests.Response:
+        filename = os.path.split(r.url)[1]
+
+        timeout = 1
+        for i in range(MAX_DOWNLOAD_RETRIES):
+            set_pbar(pbar, Color.FAIL, f"Failed, retry {i+1}: {filename}",
+                     no_update=True)
+            time.sleep(timeout)
+            res = grequests.map([r])[0]
+            if res is not None and res.ok:
+                return res
+            timeout += timeout * RETRY_BACKOFF_RATE
+        raise ConnectionError(f"Request failed >{MAX_DOWNLOAD_RETRIES} times: {e}")
+
+    return retry_request
+
+
+def gen_get_requests(pbar: tqdm, reqs: list[grequests.AsyncRequest]) -> Generator:
+    """Generator for fetching files"""
+    retry_request = make_retry_handler(pbar)
+    # Fetch asynchronously, 6 at a time
+    for i, res in grequests.imap_enumerated(reqs, size=6, exception_handler=retry_request):
+        filename = os.path.split(reqs[i].url)[1]
+        if res is None:
+            raise ConnectionError(f"Failed to get: {filename}")
+        yield i, res
+
+
+def extract_links(data: dict) -> list[str]:
+    """Extract all s3 bucket links from json"""
+    leaf_text = "".join([str(node) for node in gen_leaf_nodes(data)])
+    r = r"(?:(?:http[s]?://)?(?:piazza\.com))?/redirect/s3\?bucket=uploads[^\'\"\s)]*"
+    links = re.findall(r, leaf_text)
+    return list(set(links))
+
+
+def archive_post_assets(post: dict, base_path: str, url_prefix: str, pbar_pos: int) -> str:
+    """
+    Extracts s3 assets from a post and save the assets to disk. Returns post
+    json with converted urls
+    """
+
+    post_json_str = json.dumps(post, indent=2)
+
+    def convert_link(link):
+        """Returns converted link and filepath"""
+        nonlocal post_json_str
+        decoded = unquote(link[link.find("prefix=") + len("prefix="):])
+        return f"{url_prefix}/{decoded}", f"{base_path}/{url_prefix}/{decoded}"
+
+    links = extract_links(json.loads(post_json_str))
+    if len(links) == 0:
+        return post_json_str
+
+    pbar = tqdm(links, dynamic_ncols=True, leave=False, position=pbar_pos)
+    set_pbar(pbar, Color.WARNING, "Extracting assets...", no_update=True)
+
+    # Check if assets are already downloaded
+    links_to_archive = []
+    for link in links:
+        new_link, dst = convert_link(link)
+        post_json_str = post_json_str.replace(link, new_link)
+        filename = os.path.split(dst)[1]
+        if os.path.isfile(dst):
+            set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
+        else:
+            links_to_archive.append(link)
+
+    if len(links_to_archive) == 1:
+        filename = os.path.split(convert_link(links_to_archive[0])[1])[1]
+        set_pbar(pbar, Color.GREEN, f"Downloading {filename}", no_update=True)
+
+    # Make grequests GET requests for links
+    make_url = lambda p: f"https://piazza.com{p}" if p[0] == "/" else p
+    reqs = [grequests.get(make_url(link)) for link in links_to_archive]
+
+    for i, res in gen_get_requests(pbar, reqs):
+        link = links_to_archive[i] # Indices come back in arbitrary order
+        new_link, dst = convert_link(link)
+        post_json_str = post_json_str.replace(link, new_link)
+        dir, filename = os.path.split(dst)
+        set_pbar(pbar, Color.GREEN, f"Downloading {filename}")
+        pathlib.Path(dir).mkdir(parents=True, exist_ok=True)
+        f = open(dst, "wb")
+        f.write(res.content)
+        f.close()
+
+    set_pbar(pbar, Color.GREEN, f"Successfully archived {len(links)} assets", last=True)
+    return post_json_str
+
+
 def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
     """
     Fetches and saves class posts to a directory if they do not already exist.
@@ -209,18 +303,21 @@ def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
         feed = nw.get_feed(limit=999999, offset=0)["feed"]
         feed.sort(key=lambda info: int(info["nr"]))
 
-        pbar, posts = tqdm(feed, dynamic_ncols=True), []
+        pbar = tqdm(feed, dynamic_ncols=True, position=0)
+
+        post, converted_posts = {}, []
         for post_info in feed:
             post_num = post_info["nr"]
             path = f"{base_path}/{prefix}/{post_num}.json"
 
             filename = f"{post_num}.json"
             subject = post_info["subject"]
+            is_post_already_downloaded = os.path.isfile(path)
 
-            if os.path.isfile(path):
+            if is_post_already_downloaded:
                 set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
                 post_file = open(path, "r")
-                posts.append(json.loads(post_file.read()))
+                post = json.loads(post_file.read())
                 post_file.close()
             else:
                 set_pbar(pbar, Color.GREEN, f"{post_num}.json | {subject}")
@@ -228,11 +325,18 @@ def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
                 posts_file = open(path, "w")
                 posts_file.write(json.dumps(post, indent=2))
                 posts_file.close()
-                posts.append(post)
-                time.sleep(PIAZZA_RATE_LIMIT)
+
+            start_time = time.monotonic()
+            post_json_str = archive_post_assets(post, base_path, "assets", pbar_pos=1)
+            converted_posts.append(json.loads(post_json_str))
+            delta_s = time.monotonic() - start_time
+            timeout = PIAZZA_RATE_LIMIT - delta_s
+
+            if not is_post_already_downloaded and timeout > 0:
+                time.sleep(timeout)
 
         set_pbar(pbar, Color.GREEN, f"Successfully archived {len(feed)} posts", last=True)
-        return posts
+        return converted_posts
     except Exception as e:
         print(f"{Color.FAIL}Failed to archive posts: {e}{Color.NC}")
         return []
@@ -266,88 +370,6 @@ def archive_users(path: str, posts: list[dict], nw: Network) -> list[dict]:
         return []
 
 
-def make_retry_handler(pbar: tqdm):
-    """Curried function with progress bar for handling grequests exceptions."""
-
-    def retry_request(r: grequests.AsyncRequest, e: Exception) -> requests.Response:
-        filename = os.path.split(r.url)[1]
-
-        timeout = 1
-        for i in range(MAX_DOWNLOAD_RETRIES):
-            set_pbar(pbar, Color.FAIL, f"Failed, retry {i+1}: {filename}",
-                     no_update=True)
-            time.sleep(timeout)
-            res = grequests.map([r])[0]
-            if res is not None and res.ok:
-                return res
-            timeout += timeout * RETRY_BACKOFF_RATE
-        raise ConnectionError(f"Request failed >{MAX_DOWNLOAD_RETRIES} times: {e}")
-
-    return retry_request
-
-
-def gen_get_requests(pbar: tqdm, reqs: list[grequests.AsyncRequest]) -> Generator:
-    """Generator for fetching files"""
-    retry_request = make_retry_handler(pbar)
-    # Fetch asynchronously, 6 at a time
-    for i, res in grequests.imap_enumerated(reqs, size=6, exception_handler=retry_request):
-        filename = os.path.split(reqs[i].url)[1]
-        if res is None:
-            raise ConnectionError(f"Failed to get: {filename}")
-        yield i, res
-
-
-def extract_links(posts: dict) -> list[str]:
-    """Extract all s3 bucket links from posts json"""
-    leaf_text = "".join([str(node) for node in gen_leaf_nodes(posts)])
-    r = r"(?:(?:http[s]?://)?(?:piazza\.com))?/redirect/s3\?bucket=uploads[^\'\"\s)]*"
-    links = re.findall(r, leaf_text)
-    return list(set(links))
-
-
-def archive_assets(posts: list[dict], base_path: str, url_prefix: str) -> str:
-    """Extract s3 assets from posts and return posts json with converted urls"""
-
-    posts_json_str = json.dumps({ "posts": posts }, indent=2)
-
-    def convert_link(link):
-        """Convert link and update the posts json string"""
-        nonlocal posts_json_str
-        decoded = unquote(link[link.find("prefix=") + len("prefix="):])
-        posts_json_str = posts_json_str.replace(link, f"{url_prefix}/{decoded}")
-        return f"{base_path}/{url_prefix}/{decoded}"
-
-    links = extract_links(json.loads(posts_json_str))
-    pbar = tqdm(links, dynamic_ncols=True)
-
-    # Check if assets are already downloaded
-    links_to_archive = []
-    for link in links:
-        dst = convert_link(link)
-        filename = os.path.split(dst)[1]
-        if os.path.isfile(dst):
-            set_pbar(pbar, Color.WARNING, f"Already archived {filename}")
-        else:
-            links_to_archive.append(link)
-
-    # Make grequests GET requests for links
-    make_url = lambda p: f"https://piazza.com{p}" if p[0] == "/" else p
-    reqs = [grequests.get(make_url(link)) for link in links_to_archive]
-
-    for i, res in gen_get_requests(pbar, reqs):
-        link = links_to_archive[i] # Indices come back in arbitrary order
-        dst = convert_link(link)
-        dir, filename = os.path.split(dst)
-        set_pbar(pbar, Color.GREEN, filename)
-        pathlib.Path(dir).mkdir(parents=True, exist_ok=True)
-        f = open(dst, "wb")
-        f.write(res.content)
-        f.close()
-
-    set_pbar(pbar, Color.GREEN, f"Successfully archived {len(links)} assets", last=True)
-    return posts_json_str
-
-
 def archive_user_photos(path: str, users: list[dict]):
     """Fetch user photos from Piazza and save them to disk."""
     pathlib.Path(path).mkdir(parents=True, exist_ok=True)
@@ -375,7 +397,7 @@ def archive_user_photos(path: str, users: list[dict]):
             f.write(res.content)
             f.close()
 
-    set_pbar(pbar, Color.GREEN, f"Successfully archived {len(users)} user photos", last=True)
+    set_pbar(pbar, Color.GREEN, f"Successfully archived {len(users)} photos", last=True)
 
 
 def build_site(base_path: str):
@@ -430,10 +452,6 @@ def main():
         print(f"\n{Color.BLUE}Archiving class posts{Color.NC}", end=" ")
         print(f"{Color.WARNING}(rate limit: {PIAZZA_RATE_LIMIT} req/s){Color.NC}")
         posts = archive_posts(curr_path, "original", network)
-
-        print(f"\n{Color.BLUE}Archiving assets from posts{Color.NC}")
-        with open(f"{curr_path}/assets/posts.json", "w") as f:
-            f.write(archive_assets(posts, curr_path, "assets"))
 
         print(f"\n{Color.BLUE}Archiving users {Color.NC}")
         users = archive_users(f"{curr_path}/assets/users.json", posts, network)
