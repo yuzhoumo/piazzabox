@@ -297,6 +297,7 @@ def archive_posts(base_path: str, prefix: str, nw: Network) -> list[dict]:
     """
     Fetches and saves class posts to a directory if they do not already exist.
     Returns the a list of post jsons (read from disk if it already exists).
+    Also extracts and saves linked assets from posts if there are any.
     """
     try:
         pathlib.Path(f"{base_path}/{prefix}").mkdir(parents=True, exist_ok=True)
@@ -453,6 +454,8 @@ def main():
         print(f"\n{Color.BLUE}Archiving class posts{Color.NC}", end=" ")
         print(f"{Color.WARNING}(rate limit: {PIAZZA_RATE_LIMIT} req/s){Color.NC}")
         posts = archive_posts(curr_path, "original", network)
+        with open(f"{curr_path}/assets/posts.json", "w") as f:
+            f.write(json.dumps(posts, indent=2))
 
         print(f"\n{Color.BLUE}Archiving users {Color.NC}")
         users = archive_users(f"{curr_path}/assets/users.json", posts, network)
