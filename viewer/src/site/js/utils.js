@@ -14,7 +14,7 @@ const formatDate = (dateStr) => {
 // };
 
 // const getPosts = async () => {
-//   return (await (await fetch("assets/posts.json")).json()).posts;
+//   return (await (await fetch("assets/posts.json")).json());
 // };
 
 const getReplies = (children) => {

@@ -5,5 +5,5 @@ const getUsers = async () => {
 };
 
 const getPosts = async () => {
-  return ({{POSTS}}).posts;
+  return {{POSTS}};
 };
