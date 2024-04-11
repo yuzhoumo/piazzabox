@@ -7,6 +7,24 @@
     <script src="site/js/utils.js"></script>
     <script defer src="site/js/alpinejs-3.13.8.min.js"></script>
     <script src="site/js/marked-12.0.1.min.js"></script>
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [
+            ["$$", "$$"],
+            ["\\(", "\\)"],
+          ],
+        },
+        startup: {
+          typeset: false, // skip typset on startup
+        },
+      };
+    </script>
+    <script
+      type="text/javascript"
+      id="MathJax-script"
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    ></script>
   </head>
   <body>
     <div
@@ -38,6 +56,19 @@
 
       <!-- post view -->
       <div class="col-span-3 h-[100vh] space-y-4 overflow-y-scroll bg-gray-900">
+        <!-- prompt to render LaTex -->
+        <div class="px-4">
+          <button
+            class="mt-4 w-[100%] rounded-md bg-green-400 px-2 py-1 text-center text-green-900 hover:bg-green-500"
+            x-data="{ show: false }"
+            x-init="$watch('currentPost', p => { show = JSON.stringify(p).includes('$$')})"
+            x-on:click="show = false; MathJax.typeset()"
+            x-show="show"
+          >
+            Click here to show LaTeX
+          </button>
+        </div>
+
         <!-- main post -->
         <div
           class="mx-4 mt-4 space-y-8 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
