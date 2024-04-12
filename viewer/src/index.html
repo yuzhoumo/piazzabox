@@ -33,7 +33,10 @@
       >
         <template x-data x-for="post in posts" :key="post.id">
           <div
-            class="select-none space-y-1 border-t border-gray-600 bg-gray-700 p-4 text-gray-200 hover:bg-gray-600"
+            :class="cn([
+              'select-none', 'space-y-1', 'border-t', 'border-gray-600',
+              'bg-gray-700', 'p-4', 'text-gray-200', 'hover:bg-gray-600'
+            ])"
             x-data="{ mostRecentEdit: post.history[0] }"
             x-on:click="$store.data.setCurrent(post)"
           >
@@ -66,13 +69,16 @@
         <div
           id="container-btn-typeset-latex"
           class="px-4 pt-4"
-          x-data="{ show: JSON.parse(JSON.stringify($store.data.currentPost)) }"
+          x-data="{ show: containsInlineLatex($store.data.currentPost) }"
+          x-effect="show = containsInlineLatex($store.data.currentPost)"
           x-show="show"
-          x-effect="show = JSON.stringify($store.data.currentPost).includes('$$');"
         >
           <button
             id="btn-typeset-latex"
-            class="w-full rounded-md bg-green-400 px-2 py-1 text-sm text-green-900 hover:bg-green-500"
+            :class="cn([
+              'w-full', 'rounded-md', 'bg-green-400', 'px-2', 'py-1',
+              'text-sm', 'text-green-900', 'hover:bg-green-500'
+            ])"
             x-on:click="show = false; MathJax.typeset();"
           >
             Click here to show LaTeX
@@ -82,8 +88,11 @@
         <!-- main post -->
         <div
           id="main-post"
-          class="mx-4 mt-4 space-y-8 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
-          x-data="{ idx: 0 }"
+          :class="cn([
+            'mx-4', 'mt-4', 'space-y-8', 'rounded-lg', 'border',
+            'border-gray-700', 'bg-gray-800', 'p-8', 'text-white'
+          ])"
+          x-data="{ i: 0 }"
         >
           <div
             id="main-post-header"
@@ -92,7 +101,7 @@
             <span
               id="main-post-title"
               x-html="
-                marked.parse($store.data.currentPost.history[idx].subject)
+                marked.parse($store.data.currentPost.history[i].subject)
               "
             ></span>
             <div id="main-post-type" class="flex space-x-4">
@@ -112,7 +121,7 @@
             <span
               id="main-post-content"
               class="space-y-2 text-sm"
-              x-html="marked.parse($store.data.currentPost.history[idx].content)"
+              x-html="marked.parse($store.data.currentPost.history[i].content)"
             ></span>
           </div>
 
@@ -140,13 +149,19 @@
         <!-- collective student answer -->
         <div
           id="students-collective-answer"
-          class="mx-4 space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
+          :class="cn([
+            'mx-4', 'space-y-4', 'rounded-lg', 'border', 'border-gray-700',
+            'bg-gray-800', 'p-8', 'text-white'
+          ])"
           x-show="Boolean(getStudentsAnswer($store.data.currentPost))"
           x-data
         >
           <h1
             id="students-collective-answer-header"
-            class="text-xl font-bold underline decoration-yellow-500 decoration-solid"
+            :class="cn([
+              'text-xl', 'font-bold', 'underline', 'decoration-yellow-500',
+              'decoration-solid'
+            ])"
           >
             the students&apos; answer
           </h1>
@@ -180,13 +195,19 @@
         <!-- collective instructor answer -->
         <div
           id="instructors-collective-answer"
-          class="mx-4 space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
+          :class="cn([
+            'mx-4', 'space-y-4', 'rounded-lg', 'border', 'border-gray-700',
+            'bg-gray-800', 'p-8', 'text-white'
+          ])"
           x-show="Boolean(getInstructorsAnswer($store.data.currentPost))"
           x-data
         >
           <h1
             id="instructors-collective-answer-header"
-            class="text-xl font-bold underline decoration-yellow-500 decoration-solid"
+            :class="cn([
+              'text-xl', 'font-bold', 'underline', 'decoration-yellow-500',
+              'decoration-solid'
+            ])"
           >
             the instructors&apos; answer
           </h1>
@@ -220,20 +241,26 @@
         <!-- discussions -->
         <div
           id="followup-discussions"
-          class="mx-4 space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
-          x-show="getReplies($store.data.currentPost.children).length > 0"
+          :class="cn([
+            'mx-4', 'space-y-4', 'rounded-lg', 'border', 'border-gray-700',
+            'bg-gray-800', 'p-8', 'text-white'
+          ])"
+          x-show="getPostReplies($store.data.currentPost).length > 0"
           x-data
         >
           <h1
             id="followup-discussions-header"
-            class="text-xl font-bold underline decoration-blue-500 decoration-solid"
+            :class="cn([
+              'text-xl', 'font-bold', 'underline', 'decoration-blue-500',
+              'decoration-solid'
+            ])"
           >
             followup discussions
           </h1>
 
           <!-- followup discussions -->
           <template
-            x-for="followup in getReplies($store.data.currentPost.children)"
+            x-for="followup in getPostReplies($store.data.currentPost)"
             :key="followup.id"
           >
             <div
@@ -281,15 +308,15 @@
 
               <!-- nested replies to followup discussion -->
               <template
-                x-for="child in getReplies(followup?.children)"
-                :key="child.id"
+                x-for="reply in getPostReplies(followup)"
+                :key="reply.id"
               >
                 <div
                   class="ml-2 mt-4 rounded-md bg-gray-800 px-6 py-4"
                   x-data="{ uid: '', isAnon: false }"
                   x-init="
-                    uid = child.uid ?? child.uid_a;
-                    isAnon = Boolean(child.uid_a)
+                    uid = reply.uid ?? reply.uid_a;
+                    isAnon = Boolean(reply.uid_a)
                   "
                 >
                   <div class="flex flex-row gap-x-2 align-top">
@@ -307,19 +334,22 @@
                           class="font-bold"
                           x-text="
                             isAnon ? (
-                              getAnonName(child.uid_a, $store.data.currentPost.id)
+                              getAnonName(
+                                reply.uid_a,
+                                $store.data.currentPost.id
+                              )
                             ) : $store.data.users.get(uid)?.name
                           "
                         ></span>
-                        <span x-text="formatDate(child.created)"></span>
+                        <span x-text="formatDate(reply.created)"></span>
                       </div>
                       <span
                         class="text-sm"
-                        x-html="marked.parse(child.subject)"
+                        x-html="marked.parse(reply.subject)"
                       ></span>
                       <div class="pt-2 text-xs text-blue-300">
                         <span
-                          x-text="`helpful! | ${child?.tag_good?.length ?? 0}`"
+                          x-text="`helpful! | ${reply?.tag_good?.length ?? 0}`"
                         ></span>
                       </div>
                     </div>

@@ -1,3 +1,11 @@
+var cn = (classnames) => {
+  return classnames.join(" ");
+}
+
+var containsInlineLatex = (post) => {
+  return JSON.stringify(post).includes("$$");
+}
+
 var getAnonProfile = (anonUID, postID) => {
   const anonNames = [
     { icon: "anon_icon-01.jpg", name: "Atom"   },
@@ -16,10 +24,10 @@ var getAnonProfile = (anonUID, postID) => {
   const repeatNum = parseInt((anonUserNum - 1) / anonNames.length);
   const seed = postID.charCodeAt(postID.length - 1) || "0";
   const rand = primes[seed % primes.length] * anonUserNum + seed;
-  const index = rand % anonNames.length;
-  const name = anonNames[index].name + (repeatNum ? " " + (repeatNum + 1) : "");
+  const idx = rand % anonNames.length;
+  const name = anonNames[idx].name + (repeatNum ? " " + (repeatNum + 1) : "");
   return {
-    icon: "static/img/" + anonNames[index].icon,
+    icon: "static/img/" + anonNames[idx].icon,
     name: "Anonymous "  + name,
   };
 }
@@ -46,27 +54,28 @@ var formatDate = (dateStr) => {
 };
 
 var getPostAnswer = (currentPost, type, idx) => {
-  const children = currentPost.children;
-  const postAnswer = children.filter((c) => c.type === type);
-  return postAnswer.length > 0 ? postAnswer[0].history[idx] : null;
+  const children = currentPost?.children;
+  const postAnswer = children?.filter((c) => c.type === type);
+  return postAnswer?.length > 0 ? postAnswer[0].history[idx] : null;
 };
 
-var getPostReplies = (children) => {
+var getPostReplies = (currentPost) => {
+  const children = currentPost?.children;
   const filter = c => (c.type === "followup" || c.type === "feedback");
-  return children.filter(filter);
+  return children?.filter(filter) ?? [];
 };
 
-var getPostAnswerAuthor = (answer, userMap) => {
-  if (answer?.uid_a) {
-    return getAnonName(answer.uid_a, currentPost.id);
-  } else if (answer?.uid) {
-    return userMap.get(answer.uid)?.name;
+var getPostAuthor = (post, userMap) => {
+  if (post?.uid_a) {
+    return getAnonName(post.uid_a, post.id);
+  } else if (post?.uid) {
+    return userMap.get(post.uid)?.name;
   }
   return "";
 }
 
-var getInstructorsAnswer = (currentPost, idx) => {
-  return getCollectiveAnswer(currentPost, "i_answer", idx);
+var getInstructorsAnswer = (currentPost, index) => {
+  return getPostAnswer(currentPost, "i_answer", index);
 };
 
 var getInstructorsAnswerContent = (currentPost) => {
@@ -80,11 +89,11 @@ var getInstructorsAnswerDate = (currentPost) => {
 
 var getInstructorsAnswerAuthor = (currentPost, userMap) => {
   const answer = getInstructorsAnswer(currentPost);
-  return getPostAnswer(answer, userMap);
+  return getPostAuthor(answer, userMap);
 };
 
-var getStudentsAnswer = (currentPost, idx) => {
-  return getCollectiveAnswer(currentPost, "s_answer", idx);
+var getStudentsAnswer = (currentPost, index) => {
+  return getPostAnswer(currentPost, "s_answer", index);
 };
 
 var getStudentsAnswerContent = (currentPost) => {
@@ -98,5 +107,5 @@ var getStudentsAnswerDate = (currentPost) => {
 
 var getStudentsAnswerAuthor = (currentPost, userMap) => {
   const answer = getStudentsAnswer(currentPost);
-  return getPostAnswer(answer, userMap);
+  return getPostAuthor(answer, userMap) ?? "";
 };
