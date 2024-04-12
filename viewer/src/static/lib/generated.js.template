@@ -1,9 +1,9 @@
-const getUsers = async () => {
+var getUsers = () => {
   const userMap = new Map();
   ({{USERS}}).forEach(user => { userMap.set(user.id, user)});
   return userMap;
 };
 
-const getPosts = async () => {
+var getPosts = () => {
   return {{POSTS}};
 };

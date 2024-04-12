@@ -3,7 +3,7 @@
  * OVERWRITTEN BY THE SITE BUILDER!
  */
 
-var getUsers = async () => {
+var getUsers = () => {
   const userMap = new Map();
   [{
     "role": "",
@@ -19,7 +19,7 @@ var getUsers = async () => {
   return userMap;
 };
 
-var getPosts = async () => {
+var getPosts = () => {
   return [{
     "folders": [],
     "nr": 1,

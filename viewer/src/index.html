@@ -4,38 +4,52 @@
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="static/lib/tailwind.css" />
     <script src="static/lib/generated.js"></script>
-    <script src="static/lib/marked@12.0.1.min.js"></script>
-    <script defer src="static/lib/alpinejs@3.13.8.min.js"></script>
-    <script async src="static/script/load-mathjax.js"></script>
     <script src="static/script/utils.js"></script>
+    <script src="static/lib/marked@12.0.1.min.js"></script>
+    <script async src="static/script/load-mathjax.js"></script>
+    <script defer src="static/lib/alpinejs@3.13.8.min.js"></script>
   </head>
   <body>
-    <div
-      id="grid-view-sidebar-and-current-post"
-      class="grid grid-cols-4"
-      x-data="{ userMap: new Map(), posts: [], currentPost: null }"
-      x-init="userMap = await getUsers(); posts = await getPosts(); currentPost = posts[0]"
-    >
+    <script>
+      document.addEventListener("alpine:init", async () => {
+        Alpine.store("data", {
+          users: getUsers(),
+          posts: getPosts(),
+          currentPost: getPosts()[0],
+          setCurrent(post) {
+            this.currentPost = post;
+          },
+        });
+      });
+    </script>
+    <div id="grid-view-sidebar-and-current-post" class="grid grid-cols-4">
       <!-- posts sidebar feed -->
       <div
         id="grid-column-sidebar"
         class="col-span-1 h-[100vh] overflow-y-auto bg-gray-800"
+        x-data="{ posts: $store.data.posts }"
       >
-        <template x-for="post in posts" :key="post.id">
+        <template x-data x-for="post in posts" :key="post.id">
           <div
             class="select-none space-y-1 border-t border-gray-600 bg-gray-700 p-4 text-gray-200 hover:bg-gray-600"
-            x-on:click="currentPost = post"
-            x-data="{ h0: post?.history[0] }"
+            x-data="{ mostRecentEdit: post.history[0] }"
+            x-on:click="$store.data.setCurrent(post)"
           >
             <div class="pointer-events-none flex justify-between">
               <span
                 class="text-sm font-bold"
-                x-html="marked.parse(h0.subject)"
-              />
-              <span class="text-sm" x-text="formatDate(h0.created)" />
+                x-html="marked.parse(mostRecentEdit.subject)"
+              ></span>
+              <span
+                class="text-sm"
+                x-text="formatDate(mostRecentEdit.created)"
+              ></span>
             </div>
             <div class="pointer-events-none h-12 overflow-hidden">
-              <span class="text-xs" x-html="marked.parse(h0.content)" />
+              <span
+                class="text-xs"
+                x-html="marked.parse(mostRecentEdit.content)"
+              ></span>
             </div>
           </div>
         </template>
@@ -53,9 +67,7 @@
           x-data="{ show: false }"
           x-show="show"
           x-init="
-            $watch('currentPost', (p) => {
-              show = JSON.stringify(p).includes('$$')
-            })
+            show = JSON.stringify($store.data.currentPost).includes('$$')
           "
         >
           <button
@@ -71,6 +83,7 @@
         <div
           id="main-post"
           class="mx-4 mt-4 space-y-8 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
+          x-data="{ idx: 0 }"
         >
           <div
             id="main-post-header"
@@ -78,20 +91,18 @@
           >
             <span
               id="main-post-title"
-              x-html="marked.parse(currentPost?.history[0].subject)"
-            />
+              x-html="marked.parse($store.data.currentPost.history[idx].subject)"
+            ></span>
             <div id="main-post-type" class="flex space-x-4">
               <span
                 class="rounded-md bg-gray-700 px-3 py-1 text-sm"
-                x-text="currentPost?.type"
-                x-show="currentPost?.type"
-              />
+                x-text="$store.data.currentPost.type"
+              ></span>
               <span
                 id="main-post-viewcount"
                 class="rounded-md bg-gray-700 px-2 py-1 text-sm"
-                x-text="`${currentPost?.unique_views} views`"
-                x-show="currentPost?.unique_views > 0"
-              />
+                x-text="$store.data.currentPost.unique_views + ' views'"
+              ></span>
             </div>
           </div>
 
@@ -99,7 +110,9 @@
             <span
               id="main-post-content"
               class="space-y-2 text-sm"
-              x-html="marked.parse(currentPost?.history[0].content)"
+              x-html="
+                marked.parse($store.data.currentPost.history[idx].content)
+              "
             ></span>
           </div>
 
@@ -110,14 +123,17 @@
             <span
               id="main-post-likes"
               class="text-blue-300"
-              x-text="`good ${currentPost?.type} | ${(currentPost?.tag_good ?? []).length}`"
-            />
+              x-text="
+                'good ' + $store.data.currentPost.type + ' | ' +
+                $store.data.currentPost.tag_good.length
+              "
+            ></span>
             <div id="main-post-tags" class="space-x-2">
-              <template x-for="tag in (currentPost?.tags ?? [])">
+              <template x-for="tag in $store.data.currentPost.tags">
                 <span
                   class="rounded-md bg-blue-400 px-2 py-1 text-blue-900"
                   x-text="tag"
-                />
+                ></span>
               </template>
             </div>
           </div>
@@ -127,7 +143,8 @@
         <div
           id="students-collective-answer"
           class="mx-4 space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
-          x-show="Boolean(getStudentAnswer(currentPost)?.content)"
+          x-show="Boolean(getStudentAnswer($store.data.currentPost))"
+          x-data
         >
           <h1
             id="students-collective-answer-header"
@@ -143,17 +160,17 @@
               <span
                 id="students-collective-answer-last-author"
                 class="font-bold"
-                x-text="getStudAnsName(currentPost, userMap)"
-              />
+                x-text="getStudAnsName($store.data.currentPost, $store.data.users)"
+              ></span>
               <span
                 id="students-collective-answer-content"
-                x-text="getStudAnsDate(currentPost)"
-              />
+                x-text="getStudAnsDate($store.data.currentPost)"
+              ></span>
             </div>
             <span
               id="students-collective-answer-date"
               class="text-sm"
-              x-html="marked.parse(getStudAnsContent(currentPost) ?? '')"
+              x-html="marked.parse(getStudAnsContent(store.data.currentPost) ?? '')"
             />
           </div>
         </div>
@@ -162,7 +179,8 @@
         <div
           id="instructors-collective-answer"
           class="mx-4 space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
-          x-show="Boolean(getInstructorAnswer(currentPost)?.content)"
+          x-show="Boolean(getInstructorAnswer($store.data.currentPost))"
+          x-data
         >
           <h1
             id="instructors-collective-answer-header"
@@ -178,17 +196,21 @@
               <span
                 id="instructors-collective-answer-last-author"
                 class="font-bold"
-                x-text="getInstAnsName(currentPost, userMap)"
+                x-text="
+                  getInstAnsName($store.data.currentPost, $store.data.users)
+                "
               />
               <span
                 id="instructors-collective-answer-date"
-                x-text="getInstAnsDate(currentPost)"
+                x-text="getInstAnsDate($store.data.currentPost)"
               />
             </div>
             <span
               id="instructors-collective-answer-content"
               class="text-wrap text-sm"
-              x-html="marked.parse(getInstAnsContent(currentPost) ?? '')"
+              x-html="
+                marked.parse(getInstAnsContent($store.data.currentPost) ?? '')
+              "
             />
           </div>
         </div>
@@ -197,7 +219,8 @@
         <div
           id="followup-discussions"
           class="mx-4 space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-8 text-white"
-          x-show="getReplies(currentPost?.children).length > 0"
+          x-show="getReplies($store.data.currentPost.children).length > 0"
+          x-data
         >
           <h1
             id="followup-discussions-header"
@@ -208,26 +231,37 @@
 
           <!-- followup discussions -->
           <template
-            x-for="followup in getReplies(currentPost?.children)"
+            x-for="followup in getReplies($store.data.currentPost.children)"
             :key="followup.id"
           >
             <div
               class="rounded-md bg-gray-700 px-6 py-4"
               x-data="{ fuid: '', fIsAnon: false }"
-              x-init="fuid = followup.uid ?? followup.uid_a; fIsAnon = Boolean(followup.uid_a)"
+              x-init="
+                fuid = followup.uid ?? followup.uid_a;
+                fIsAnon = Boolean(followup.uid_a)
+              "
             >
               <div class="flex flex-row gap-x-2 align-top">
                 <img
                   class="mt-1 h-10 w-10 border border-gray-500"
-                  :src="fIsAnon ? getAnonIcon(fuid, currentPost.id) : getUserIcon(fuid, userMap)"
+                  :src="
+                    fIsAnon ? (
+                      getAnonIcon(fuid, $store.data.currentPost.id)
+                    ) : getUserIcon(fuid, $store.data.users)
+                  "
                 />
                 <div class="space-y-1 overflow-x-auto">
                   <div class="flex gap-x-2 text-sm">
                     <span
                       class="font-bold"
-                      x-text="fIsAnon ? getAnonName(fuid, currentPost.id) : userMap.get(fuid)?.name"
-                    />
-                    <span x-text="formatDate(followup.created)" />
+                      x-text="
+                        fIsAnon ? (
+                          getAnonName(fuid, currentPost.id)
+                        ) : $store.data.users.get(fuid)?.name
+                      "
+                    ></span>
+                    <span x-text="formatDate(followup.created)"></span>
                   </div>
                   <span
                     class="text-sm"
@@ -235,8 +269,10 @@
                   />
                   <div class="pt-2 text-xs text-blue-300">
                     <span
-                      x-text="`helpful! | ${(followup?.tag_good ?? []).length}`"
-                    />
+                      x-text="
+                        `helpful! | ${(followup?.tag_good?.length ?? 0)}`
+                      "
+                    ></span>
                   </div>
                 </div>
               </div>
@@ -249,29 +285,40 @@
                 <div
                   class="ml-2 mt-4 rounded-md bg-gray-800 px-6 py-4"
                   x-data="{ uid: '', isAnon: false }"
-                  x-init="uid = child.uid ?? child.uid_a; isAnon = Boolean(child.uid_a)"
+                  x-init="
+                    uid = child.uid ?? child.uid_a;
+                    isAnon = Boolean(child.uid_a)
+                  "
                 >
                   <div class="flex flex-row gap-x-2 align-top">
                     <img
                       class="mt-1 h-10 w-10 border border-gray-500"
-                      :src="isAnon ? getAnonIcon(uid, currentPost.id) : getUserIcon(uid, userMap)"
+                      :src="
+                        isAnon ? (
+                          getAnonIcon(uid, $store.data.currentPost.id)
+                         ) : getUserIcon(uid, $store.data.users)
+                      "
                     />
                     <div class="space-y-1 overflow-x-auto">
                       <div class="flex gap-x-2 text-sm">
                         <span
                           class="font-bold"
-                          x-text="isAnon ? getAnonName(child.uid_a, currentPost.id) : userMap.get(uid)?.name"
-                        />
+                          x-text="
+                            isAnon ? (
+                              getAnonName(child.uid_a, $store.data.currentPost.id)
+                            ) : $store.data.users.get(uid)?.name
+                          "
+                        ></span>
                         <span x-text="formatDate(child.created)" />
                       </div>
                       <span
                         class="text-sm"
                         x-html="marked.parse(child.subject)"
-                      />
+                      ></span>
                       <div class="pt-2 text-xs text-blue-300">
                         <span
-                          x-text="`helpful! | ${(child?.tag_good ?? []).length}`"
-                        />
+                          x-text="`helpful! | ${child?.tag_good?.length ?? 0}`"
+                        ></span>
                       </div>
                     </div>
                   </div>

@@ -7,15 +7,17 @@ var formatDate = (dateStr) => {
 };
 
 var getReplies = (children) => {
-  return (children ?? []).filter(
-    (c) => c.type === "followup" || c.type === "feedback",
+  return children.filter(
+    c => (c.type === "followup" || c.type === "feedback")
   );
 };
 
-const getInstructorAnswer = (currentPost) => {
-  const children = currentPost?.children;
-  const answer = (children ?? []).filter((c) => c.type === "i_answer");
-  return answer.length > 0 ? answer[0].history[0] : {};
+const getInstructorAnswer = (data) => {
+  console.log(data);
+  const currentPost = JSON.parse(JSON.stringify(data))
+  const children = currentPost.children;
+  const answer = children.filter((c) => c.type === "i_answer");
+  return answer.length > 0 ? answer[0].history[0] : null;
 };
 
 var getInstAnsContent = (currentPost) => {
@@ -33,10 +35,12 @@ var getInstAnsName = (currentPost, userMap) => {
   return name;
 }
 
-var getStudentAnswer = (currentPost) => {
-  const children = currentPost?.children;
-  const answer = (children ?? []).filter((c) => c.type === "s_answer");
-  return answer.length > 0 ? answer[0].history[0] : {};
+var getStudentAnswer = (data) => {
+  console.log(data);
+  const currentPost = JSON.parse(JSON.stringify(data))
+  const children = currentPost.children;
+  const answer = children.filter((c) => c.type === "s_answer");
+  return answer.length > 0 ? answer[0].history[0] : null;
 };
 
 var getStudAnsContent = (currentPost) => {
