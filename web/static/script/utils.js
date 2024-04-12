@@ -24,10 +24,10 @@ var getAnonProfile = (anonUID, postID) => {
   const repeatNum = parseInt((anonUserNum - 1) / anonNames.length);
   const seed = postID.charCodeAt(postID.length - 1) || "0";
   const rand = primes[seed % primes.length] * anonUserNum + seed;
-  const idx = rand % anonNames.length;
-  const name = anonNames[idx].name + (repeatNum ? " " + (repeatNum + 1) : "");
+  const i = rand % anonNames.length;
+  const name = anonNames[i].name + (repeatNum ? " " + (repeatNum + 1) : "");
   return {
-    icon: "static/img/" + anonNames[idx].icon,
+    icon: "static/img/" + anonNames[i].icon,
     name: "Anonymous "  + name,
   };
 }
@@ -42,7 +42,7 @@ var getAnonIcon = (anonUID, postID) => {
 
 var getUserIcon = (uid, userMap) => {
   const filename = userMap.get(uid)?.photo;
-  return filename ? `assets/photos/${filename}` : "site/img/default.svg";
+  return filename ? `assets/photos/${filename}` : "static/img/default.svg";
 }
 
 var formatDate = (dateStr) => {
@@ -53,10 +53,10 @@ var formatDate = (dateStr) => {
   return `${month}/${day}/${year}`;
 };
 
-var getPostAnswer = (currentPost, type, idx) => {
+var getPostAnswer = (currentPost, type, index) => {
   const children = currentPost?.children;
   const postAnswer = children?.filter((c) => c.type === type);
-  return postAnswer?.length > 0 ? postAnswer[0].history[idx] : null;
+  return postAnswer?.length > 0 ? postAnswer[0].history[index] : null;
 };
 
 var getPostReplies = (currentPost) => {
@@ -78,34 +78,40 @@ var getInstructorsAnswer = (currentPost, index) => {
   return getPostAnswer(currentPost, "i_answer", index);
 };
 
-var getInstructorsAnswerContent = (currentPost) => {
-  return getInstructorsAnswer(currentPost)?.content ?? "";
+var getInstructorsAnswerContent = (currentPost, index) => {
+  return getInstructorsAnswer(currentPost, index)?.content ?? "";
 };
 
-var getInstructorsAnswerDate = (currentPost) => {
-  const created = getInstructorsAnswer(currentPost)?.created;
+var getInstructorsAnswerDate = (currentPost, index) => {
+  const created = getInstructorsAnswer(currentPost, index)?.created;
   return created ? formatDate(created) : "";
 };
 
-var getInstructorsAnswerAuthor = (currentPost, userMap) => {
-  const answer = getInstructorsAnswer(currentPost);
-  return getPostAuthor(answer, userMap);
+var getInstructorsAnswerAuthor = (currentPost, userMap, index) => {
+  const answer = getInstructorsAnswer(currentPost, index);
+  if (answer?.uid_a) {
+    return getAnonName(answer.uid_a, currentPost.id);
+  }
+  return userMap.get(answer?.uid)?.name ?? "";
 };
 
 var getStudentsAnswer = (currentPost, index) => {
   return getPostAnswer(currentPost, "s_answer", index);
 };
 
-var getStudentsAnswerContent = (currentPost) => {
-  return getStudentsAnswer(currentPost)?.content ?? "";
+var getStudentsAnswerContent = (currentPost, index) => {
+  return getStudentsAnswer(currentPost, index)?.content ?? "";
 };
 
-var getStudentsAnswerDate = (currentPost) => {
-  const created = getStudentsAnswer(currentPost)?.created;
+var getStudentsAnswerDate = (currentPost, index) => {
+  const created = getStudentsAnswer(currentPost, index)?.created;
   return created ? formatDate(created) : "";
 };
 
-var getStudentsAnswerAuthor = (currentPost, userMap) => {
-  const answer = getStudentsAnswer(currentPost);
-  return getPostAuthor(answer, userMap) ?? "";
+var getStudentsAnswerAuthor = (currentPost, userMap, index) => {
+  const answer = getStudentsAnswer(currentPost, index);
+  if (answer?.uid_a) {
+    return getAnonName(answer.uid_a, currentPost.id);
+  }
+  return userMap.get(answer?.uid)?.name ?? "";
 };

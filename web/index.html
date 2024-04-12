@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="static/lib/tailwind.css" />
-    <script src="static/lib/generated.js"></script>
-    <script src="static/script/utils.js"></script>
-    <script src="static/lib/marked@12.0.1.min.js"></script>
-    <script async src="static/script/load-mathjax.js"></script>
     <script defer src="static/lib/alpinejs@3.13.8.min.js"></script>
+    <script src="static/lib/marked@12.0.1.min.js"></script>
+    <script src="static/lib/generated-data.js"></script>
+    <script src="static/script/utils.js"></script>
+    <script async src="static/script/load-mathjax.js"></script>
   </head>
   <body>
     <script>
@@ -22,6 +22,14 @@
           },
         });
       });
+
+			var formatContent = (content) => {
+				let out = content;
+				if (out.includes("<md>")) {
+					out = marked.parse(out);
+				}
+				return `<div x-ignore>${out}</div>`;
+			}
     </script>
 
     <div id="grid-view-sidebar-and-current-post" class="grid grid-cols-4">
@@ -38,12 +46,12 @@
               'bg-gray-700', 'p-4', 'text-gray-200', 'hover:bg-gray-600'
             ])"
             x-data="{ mostRecentEdit: post.history[0] }"
-            x-on:click="$store.data.setCurrent(post)"
+            x-on:click="$store.data.setCurrent(post);"
           >
             <div class="pointer-events-none flex justify-between">
               <span
                 class="text-sm font-bold"
-                x-html="marked.parse(mostRecentEdit.subject)"
+                x-html="formatContent(mostRecentEdit.subject)"
               ></span>
               <span
                 class="text-sm"
@@ -53,7 +61,7 @@
             <div class="pointer-events-none h-12 overflow-hidden">
               <span
                 class="text-xs"
-                x-html="marked.parse(mostRecentEdit.content)"
+                x-html="formatContent(mostRecentEdit.content)"
               ></span>
             </div>
           </div>
@@ -64,6 +72,7 @@
       <div
         id="grid-column-current-post"
         class="col-span-3 h-[100vh] space-y-4 overflow-y-auto bg-gray-900"
+        x-data="{ i: 0 }"
       >
         <!-- button for triggering latex typeset -->
         <div
@@ -79,7 +88,7 @@
               'w-full', 'rounded-md', 'bg-green-400', 'px-2', 'py-1',
               'text-sm', 'text-green-900', 'hover:bg-green-500'
             ])"
-            x-on:click="show = false; MathJax.typeset();"
+            x-on:click="show = false; MathJax.typesetPromise();"
           >
             Click here to show LaTeX
           </button>
@@ -92,7 +101,6 @@
             'mx-4', 'mt-4', 'space-y-8', 'rounded-lg', 'border',
             'border-gray-700', 'bg-gray-800', 'p-8', 'text-white'
           ])"
-          x-data="{ i: 0 }"
         >
           <div
             id="main-post-header"
@@ -100,9 +108,7 @@
           >
             <span
               id="main-post-title"
-              x-html="
-                marked.parse($store.data.currentPost.history[i].subject)
-              "
+              x-html="formatContent($store.data.currentPost.history[i].subject)"
             ></span>
             <div id="main-post-type" class="flex space-x-4">
               <span
@@ -121,7 +127,9 @@
             <span
               id="main-post-content"
               class="space-y-2 text-sm"
-              x-html="marked.parse($store.data.currentPost.history[i].content)"
+              x-html="formatContent(
+								$store.data.currentPost.history[i].content
+							)"
             ></span>
           </div>
 
@@ -153,7 +161,7 @@
             'mx-4', 'space-y-4', 'rounded-lg', 'border', 'border-gray-700',
             'bg-gray-800', 'p-8', 'text-white'
           ])"
-          x-show="Boolean(getStudentsAnswer($store.data.currentPost))"
+          x-show="Boolean(getStudentsAnswer($store.data.currentPost, i))"
           x-data
         >
           <h1
@@ -174,20 +182,20 @@
                 id="students-collective-answer-last-author"
                 class="font-bold"
                 x-text="getStudentsAnswerAuthor(
-                  $store.data.currentPost, $store.data.users
+                  $store.data.currentPost, $store.data.users, i
                 )"
               ></span>
               <span
                 id="students-collective-answer-content"
-                x-text="getStudentsAnswerDate($store.data.currentPost)"
+                x-text="getStudentsAnswerDate($store.data.currentPost, i)"
               ></span>
             </div>
             <span
               id="students-collective-answer-date"
               class="text-sm"
-              x-html="marked.parse(
-                getStudentsAnswerContent($store.data.currentPost)
-              )"
+              x-html="formatContent(
+								getStudentsAnswerContent($store.data.currentPost, i)
+							)"
             />
           </div>
         </div>
@@ -199,7 +207,7 @@
             'mx-4', 'space-y-4', 'rounded-lg', 'border', 'border-gray-700',
             'bg-gray-800', 'p-8', 'text-white'
           ])"
-          x-show="Boolean(getInstructorsAnswer($store.data.currentPost))"
+          x-show="Boolean(getInstructorsAnswer($store.data.currentPost, i))"
           x-data
         >
           <h1
@@ -220,20 +228,20 @@
                 id="instructors-collective-answer-last-author"
                 class="font-bold"
                 x-text="getInstructorsAnswerAuthor(
-                  $store.data.currentPost, $store.data.users
+                  $store.data.currentPost, $store.data.users, i
                 )"
               ></span>
               <span
                 id="instructors-collective-answer-date"
-                x-text="getInstructorsAnswerDate($store.data.currentPost)"
+                x-text="getInstructorsAnswerDate($store.data.currentPost, i)"
               ></span>
             </div>
             <span
               id="instructors-collective-answer-content"
               class="text-wrap text-sm"
-              x-html="marked.parse(
-                getInstructorsAnswerContent($store.data.currentPost)
-              )"
+              x-html="formatContent(
+								getInstructorsAnswerContent($store.data.currentPost, i)
+							)"
             ></span>
           </div>
         </div>
@@ -286,7 +294,7 @@
                       class="font-bold"
                       x-text="
                         fIsAnon ? (
-                          getAnonName(fuid, currentPost.id)
+                          getAnonName(fuid, $store.data.currentPost.id)
                         ) : $store.data.users.get(fuid)?.name
                       "
                     ></span>
@@ -294,7 +302,7 @@
                   </div>
                   <span
                     class="text-sm"
-                    x-html="marked.parse(followup.subject)"
+                    x-html="formatContent(followup.subject)"
                   ></span>
                   <div class="pt-2 text-xs text-blue-300">
                     <span
@@ -345,7 +353,7 @@
                       </div>
                       <span
                         class="text-sm"
-                        x-html="marked.parse(reply.subject)"
+                        x-html="formatContent(reply.subject)"
                       ></span>
                       <div class="pt-2 text-xs text-blue-300">
                         <span

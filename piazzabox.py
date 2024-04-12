@@ -15,6 +15,10 @@ import os
 import re
 
 
+WEB_DIR = "web"
+OUTPUT_DIR = "out"
+USERS_TEMPLATE_STR = "{{USERS}}"
+POSTS_TEMPLATE_STR = "{{POSTS}}"
 PIAZZA_RATE_LIMIT = 1
 MAX_PBAR_DESC_LEN = 40
 MAX_DOWNLOAD_RETRIES = 10
@@ -402,33 +406,27 @@ def archive_user_photos(path: str, users: list[dict]):
     set_pbar(pbar, Color.GREEN, f"Successfully archived {len(users)} photos", last=True)
 
 
-def build_site(base_path: str):
+def build_site(out_dir: str):
     """
     Copy viewer source and generate a javascript file containing the posts
     json and users json from the archive. This is done to avoid CORS so that
     the site can be opened locally without the need to run a webserver.
     """
-    if os.path.exists(f"{base_path}/index.html"):
+    if os.path.exists(f"{out_dir}/index.html"):
         print(f"{Color.WARNING}Site already exists{Color.NC}")
         return
-    viewer_src = "viewer/src"
-    if not os.path.exists(viewer_src):
-        raise FileNotFoundError("viewer directory not found")
-    for src_file in os.listdir(viewer_src):
-        src_path = f"{viewer_src}/{src_file}"
-        if os.path.isfile(src_path):
-            shutil.copy(src_path, f"{base_path}/{src_file}")
-        else:
-            shutil.copytree(src_path, f"{base_path}/{src_file}")
-    with open (f"{base_path}/site/js/generated.template.js") as f:
+    if not os.path.exists(WEB_DIR):
+        raise FileNotFoundError("web directory not found")
+    shutil.copy(f"{WEB_DIR}/index.html", f"{out_dir}/index.html")
+    shutil.copytree(f"{WEB_DIR}/static", f"{out_dir}/static")
+    with open (f"{WEB_DIR}/static/lib/generated-data.js.template") as f:
         template = f.read()
-    with open(f"{base_path}/assets/posts.json", "r") as f:
-        template = template.replace("{{POSTS}}", f.read())
-    with open(f"{base_path}/assets/users.json", "r") as f:
-        template = template.replace("{{USERS}}", f.read())
-    with open(f"{base_path}/site/js/generated.js", "w") as f:
+    with open(f"{out_dir}/assets/posts.json", "r") as f:
+        template = template.replace(POSTS_TEMPLATE_STR, f.read())
+    with open(f"{out_dir}/assets/users.json", "r") as f:
+        template = template.replace(USERS_TEMPLATE_STR, f.read())
+    with open(f"{out_dir}/static/lib/generated-data.js", "w") as f:
         f.write(template)
-    os.remove(f"{base_path}/site/js/generated.template.js")
     print(f"{Color.GREEN}Successfully built site")
 
 
@@ -439,29 +437,30 @@ def main():
 
     for i in selection:
         curr_class = classes[i-1]
-        curr_path = f"{os.getcwd()}/archive/{str(curr_class)}"
-        pathlib.Path(f"{curr_path}/assets").mkdir(parents=True, exist_ok=True)
+        curr_path = f"{os.getcwd()}/{OUTPUT_DIR}/{str(curr_class)}"
+        assets_dir = f"{curr_path}/assets"
+        pathlib.Path(assets_dir).mkdir(parents=True, exist_ok=True)
 
         print(f"\n{Color.BOLD}{Color.CYAN}{str(curr_class)}:{Color.NC}")
         network = p.network(curr_class.id)
 
         print(f"\n{Color.BLUE}Archiving class info{Color.NC}")
-        archive_class_info(f"{curr_path}/assets/info.json", curr_class)
+        archive_class_info(f"{assets_dir}/info.json", curr_class)
 
         print(f"\n{Color.BLUE}Archiving class stats{Color.NC}")
-        archive_class_stats(f"{curr_path}/assets/stats.json", network)
+        archive_class_stats(f"{assets_dir}/stats.json", network)
 
         print(f"\n{Color.BLUE}Archiving class posts{Color.NC}", end=" ")
         print(f"{Color.WARNING}(rate limit: {PIAZZA_RATE_LIMIT} req/s){Color.NC}")
         posts = archive_posts(curr_path, "original", network)
-        with open(f"{curr_path}/assets/posts.json", "w") as f:
+        with open(f"{assets_dir}/posts.json", "w") as f:
             f.write(json.dumps(posts, indent=2))
 
         print(f"\n{Color.BLUE}Archiving users {Color.NC}")
-        users = archive_users(f"{curr_path}/assets/users.json", posts, network)
+        users = archive_users(f"{assets_dir}/users.json", posts, network)
 
         print(f"\n{Color.BLUE}Archiving user photos {Color.NC}")
-        archive_user_photos(f"{curr_path}/assets/photos", users)
+        archive_user_photos(f"{assets_dir}/photos", users)
 
         print(f"\n{Color.BLUE}Building site{Color.NC}")
         build_site(curr_path)
