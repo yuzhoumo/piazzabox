@@ -74,5 +74,60 @@ var getPosts = () => {
     "s_edits": [],
     "t": 1712739508446,
     "default_anonymity": "no"
+  },
+  {
+    "folders": [],
+    "nr": 2,
+    "data": {
+      "embed_links": []
+    },
+    "created": "2019-08-19T22:16:09Z",
+    "bucket_order": 2,
+    "no_answer_followup": 0,
+    "change_log": [
+      {
+        "anon": "no",
+        "uid": "gd6v7134AUa",
+        "data": "jziyku6wmrj7at",
+        "type": "create",
+        "when": "2019-08-19T22:16:09Z"
+      }
+    ],
+    "bucket_name": "Today",
+    "history": [
+      {
+        "anon": "no",
+        "uid": "gd6v7134AUa",
+        "subject": "Test post 2",
+        "created": "2019-08-19T22:16:09Z",
+        "content": "Lorem Ipsum..."
+      }
+    ],
+    "type": "note",
+    "tags": [
+      "student"
+    ],
+    "tag_good": [],
+    "unique_views": 40,
+    "children": [],
+    "tag_good_arr": [],
+    "id": "jziyku5vqrk7ab",
+    "config": {
+      "is_default": 1
+    },
+    "status": "active",
+    "drafts": null,
+    "request_instructor": 0,
+    "request_instructor_me": false,
+    "bookmarked": 0,
+    "num_favorites": 2,
+    "my_favorite": false,
+    "is_bookmarked": false,
+    "is_tag_good": false,
+    "q_edits": [],
+    "i_edits": [],
+    "s_edits": [],
+    "t": 1712739508446,
+    "default_anonymity": "no"
   }];
 };

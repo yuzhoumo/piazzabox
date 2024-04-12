@@ -12,50 +12,56 @@ var getReplies = (children) => {
   );
 };
 
-const getInstructorAnswer = (data) => {
-  console.log(data);
-  const currentPost = JSON.parse(JSON.stringify(data))
+const getInstructorsAnswer = (data) => {
+  const currentPost = JSON.parse(JSON.stringify(data));
   const children = currentPost.children;
   const answer = children.filter((c) => c.type === "i_answer");
   return answer.length > 0 ? answer[0].history[0] : null;
 };
 
-var getInstAnsContent = (currentPost) => {
-  return getInstructorAnswer(currentPost)?.content;
+var getInstructorsAnswerContent = (currentPost) => {
+  return getInstructorsAnswer(currentPost)?.content ?? '';
 }
 
-var getInstAnsDate = (currentPost) => {
-  const created = getInstructorAnswer(currentPost)?.created
+var getInstructorsAnswerDate = (currentPost) => {
+  const created = getInstructorsAnswer(currentPost)?.created;
   return created ? formatDate(created) : "";
 }
 
-var getInstAnsName = (currentPost, userMap) => {
-  const ans = getInstructorAnswer(currentPost)
-  const name = ans.uid_a ? getAnonName(ans.uid_a, currentPost.id) : userMap?.get(ans.uid)?.name;
-  return name;
+var getInstructorsAnswerAuthor = (currentPost, userMap) => {
+  const answer = getInstructorsAnswer(currentPost);
+  if (answer?.uid_a) {
+    return getAnonName(answer.uid_a, currentPost.id);
+  } else if (answer?.uid) {
+    return userMap.get(answer.uid)?.name;
+  }
+  return "";
 }
 
-var getStudentAnswer = (data) => {
-  console.log(data);
-  const currentPost = JSON.parse(JSON.stringify(data))
+var getStudentsAnswer = (data) => {
+  const currentPost = JSON.parse(JSON.stringify(data));
   const children = currentPost.children;
   const answer = children.filter((c) => c.type === "s_answer");
   return answer.length > 0 ? answer[0].history[0] : null;
 };
 
-var getStudAnsContent = (currentPost) => {
-  return getStudentAnswer(currentPost)?.content;
+var getStudentsAnswerContent = (currentPost) => {
+  return getStudentsAnswer(currentPost)?.content ?? "";
 }
 
-var getStudAnsDate = (currentPost) => {
-  const created = getStudentAnswer(currentPost)?.created
+var getStudentsAnswerDate = (currentPost) => {
+  const created = getStudentsAnswer(currentPost)?.created;
   return created ? formatDate(created) : "";
 }
 
-var getStudAnsName = (currentPost, userMap) => {
-  const ans = getStudentAnswer(currentPost)
-  const name = ans.uid_a ? getAnonName(ans.uid_a, currentPost.id) : userMap?.get(ans.uid)?.name;
-  return name;
+var getStudentsAnswerAuthor = (currentPost, userMap) => {
+  const answer = getStudentsAnswer(currentPost);
+  if (answer?.uid_a) {
+    return getAnonName(answer.uid_a, currentPost.id);
+  } else if (answer?.uid) {
+    return userMap.get(answer.uid)?.name;
+  }
+  return "";
 }
 
 var getAnonProfile = (anonUID, postID) => {
