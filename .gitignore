@@ -4,3 +4,5 @@ node_modules
 venv
 secrets.json
 out
+data.js
+assets

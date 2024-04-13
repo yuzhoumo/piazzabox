@@ -8,16 +8,17 @@
     <script src="static/lib/marked@12.0.1.min.js"></script>
     <script src="static/lib/fuse.basic@7.0.0.min.js"></script>
     <script async src="static/lib/mathjax/load-mathjax.js"></script>
+    <script defer src="static/lib/alpine/persist@3.13.8.min.js"></script>
     <script defer src="static/lib/alpine/intersect@3.18.8.min.js"></script>
     <script defer src="static/lib/alpine/alpinejs@3.13.8.min.js"></script>
   </head>
   <body>
     <script>
       // Initialize global data in Alpine store
-      document.addEventListener("alpine:init", async () => {
+      document.addEventListener("alpine:initializing", async () => {
         Alpine.store("data", {
           users: getUsers(),
-          currentPost: getPosts()[0],
+          currentPost: Alpine.$persist(getPosts()[0]),
           setCurrent(post) {
             this.currentPost = post;
           },
@@ -96,10 +97,7 @@
             </div>
           </div>
         </template>
-        <span
-					id="load-more-posts-trigger"
-					x-intersect="shown += 128"
-				></span>
+        <span id="load-more-posts-trigger" x-intersect="shown += 128"></span>
       </div>
 
       <!-- main post and followups -->
