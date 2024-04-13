@@ -2,27 +2,45 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="static/lib/tailwind.css" />
-    <script defer src="static/lib/alpinejs@3.13.8.min.js"></script>
+    <link rel="stylesheet" href="static/build/tailwind.css" />
+    <script src="static/build/data.js"></script>
+    <script src="static/lib/utils.js"></script>
     <script src="static/lib/marked@12.0.1.min.js"></script>
-    <script src="static/lib/generated-data.js"></script>
-    <script src="static/script/utils.js"></script>
-    <script async src="static/script/load-mathjax.js"></script>
+    <script src="static/lib/fuse.basic@7.0.0.min.js"></script>
+    <script async src="static/lib/mathjax/load-mathjax.js"></script>
+    <script defer src="static/lib/alpine/alpinejs@3.13.8.min.js"></script>
   </head>
   <body>
     <script>
+      // Initialize global data in Alpine store
       document.addEventListener("alpine:init", async () => {
-        const posts = getPosts();
         Alpine.store("data", {
           users: getUsers(),
-          posts: posts,
-          currentPost: posts[0],
+          currentPost: getPosts()[0],
           setCurrent(post) {
             this.currentPost = post;
           },
         });
       });
 
+      // Make search function (use closure to hide local vars)
+      var searchPosts = (() => {
+        const posts = getPosts();
+        const options = {
+          keys: [
+            { name: "content", getFn: (post) => post.history[0].content },
+            { name: "subject", getFn: (post) => post.history[0].subject },
+          ],
+        };
+        const index = Fuse.createIndex(options.keys, posts);
+        const fuse = new Fuse(posts, options, index);
+        return (query) => {
+          if (query === "") return posts;
+          return fuse.search(query).map((item) => item.item);
+        };
+      })();
+
+      // Parse markdown and add x-ignore to prevent Alpine errors
       var formatContent = (content) => {
         let out = content;
         if (out.includes("<md>")) {
@@ -37,9 +55,16 @@
       <div
         id="grid-column-sidebar"
         class="col-span-1 h-[100vh] overflow-y-auto bg-gray-800"
-        x-data="{ posts: $store.data.posts }"
+        x-data="{ query: '' }"
       >
-        <template x-data x-for="post in posts" :key="post.id">
+        <input
+          id="posts-searchbar"
+          class="w-full bg-gray-800 p-3 text-sm text-white"
+          type="text"
+          placeholder="Search posts..."
+          x-model.debounce.500ms="query"
+        />
+        <template x-data x-for="post in searchPosts(query)" :key="post.id">
           <div
             :class="cn([
               'select-none', 'space-y-1', 'border-t', 'border-gray-600',
@@ -78,9 +103,9 @@
         <div
           id="container-btn-typeset-latex"
           class="px-4 pt-4"
-          x-data="{ show: containsInlineLatex($store.data.currentPost) }"
-          x-effect="show = containsInlineLatex($store.data.currentPost)"
-          x-show="show"
+          x-data="{ shown: containsInlineLatex($store.data.currentPost) }"
+          x-effect="shown = containsInlineLatex($store.data.currentPost)"
+          x-show="shown"
         >
           <button
             id="btn-typeset-latex"
@@ -88,7 +113,7 @@
               'w-full', 'rounded-md', 'bg-green-400', 'px-2', 'py-1',
               'text-sm', 'text-green-900', 'hover:bg-green-500'
             ])"
-            x-on:click="show = false; MathJax.typesetPromise();"
+            x-on:click="shown = false; MathJax.typesetPromise()"
           >
             Click here to show LaTeX
           </button>

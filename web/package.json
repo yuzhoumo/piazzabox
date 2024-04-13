@@ -5,7 +5,7 @@
   "main": "tailwind.config.js",
   "scripts": {
     "format": "prettier --write ./index.html",
-    "rebuild-css": "npx tailwindcss -o ./static/lib/tailwind.css --minify",
+    "rebuild-css": "npx tailwindcss -o ./static/build/tailwind.css --minify",
     "build": "npm run format && npm run rebuild-css"
   },
   "author": "Yuzhou (Joe) Mo",
