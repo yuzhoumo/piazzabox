@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>PiazzaBox Archive Viewer</title>
-    <link rel="icon" type="image/x-icon" href="static/img/favicon.ico">	
+    <link rel="icon" type="image/x-icon" href="static/img/favicon.ico" />
     <link rel="stylesheet" href="static/build/tailwind.css" />
     <script src="static/build/data.js"></script>
     <script src="static/lib/utils.js"></script>
@@ -102,12 +102,19 @@
           </div>
         </template>
         <span id="load-more-posts-trigger" x-intersect="shown += 128"></span>
+        <span
+          id="nothing-found"
+          class="flex select-none justify-center py-8 text-lg text-gray-300"
+          x-show="posts.length === 0"
+        >
+          No posts found
+        </span>
       </div>
 
       <!-- main post and followups -->
       <div
         id="grid-column-current-post"
-        class="col-span-3 h-[100vh] space-y-4 overflow-y-auto bg-gray-900"
+        class="col-span-3 h-[100vh] space-y-4 overflow-y-auto bg-gray-900 pb-4"
         x-init="$watch('$store.data.currentPost', (p) => { currentPost = p })"
         x-data="{
           currentPost: $store.data.currentPost, userMap: getUsers(), i: 0
