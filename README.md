@@ -7,16 +7,12 @@ Built with Python and Alpine.js + Tailwind.
 
 ![screenshot](screenshot.png)
 
-### Usage
-
-1. Rename the `secrets.template.json` file to `secrets.json` and fill in your
-   email and password for Piazza.
-2. Run `python3 piazzabox.py` and choose Piazza courses to archive.
-3. Open the generated html found in the `/archive` folder (alternatively,
-   host this somewhere).
-
-If Piazzabox fails due to network errors or is otherwise interrupted while
-archiving, restart the program and it will pick up where it left off.
+Features:
+- Archives course info and posts to json files.
+- Downloads file attachments and user profile photos.
+- Generates an offline-viewable webpage for each archived course.
+- Generated webpages display images, markdown, and math notations (LaTeX).
+- Anonymous usernames are correctly generated (matches what's shown on Piazza).
 
 ### Installation
 
@@ -26,9 +22,22 @@ source ./venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Usage
+
+1. Run `python3 piazzabox.py` and enter your login credentials.
+2. Choose Piazza courses to archive.
+3. Open the generated `index.html` file found in the `out` folder
+   (alternatively, host this somewhere).
+
+Optional: Rename the `secrets.template.json` file to `secrets.json` and fill
+in your Piazza email and password to keep your login credentials saved.
+
+If Piazzabox fails due to network errors or is otherwise interrupted while
+archiving, restart the program and it will pick up where it left off.
+
 ### Development
 
-There is no need to install dev dependencies for the viewer unless you are
+There is no need to install dev dependencies for the webpage unless you are
 making changes to it. Use the following to install dev dependencies:
 
 ```sh
