@@ -12,7 +12,7 @@ window.MathJax = {
 
 (function () {
   var script = document.createElement('script');
-  script.src = 'static/lib/mathjax/mathjax-es5-tex-mml-chtml@3.2.2.min.js';
+  script.src = 'static/lib/mathjax/mathjax-es5-tex-chtml@3.2.2.min.js';
   script.async = true;
   document.head.appendChild(script);
 })();
