@@ -31,6 +31,7 @@
         const posts = getPosts();
         const options = {
           keys: [
+						{ name: "nr", getFn: (post) => `@${post.nr}` },
             { name: "content", getFn: (post) => post.history[0].content },
             { name: "subject", getFn: (post) => post.history[0].subject },
           ],
