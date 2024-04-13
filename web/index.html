@@ -66,9 +66,11 @@
       >
         <input
           id="posts-searchbar"
-          :class="cn(['w-full', 'border-b', 'border-gray-600', 'bg-gray-800',
-            'p-3', 'text-sm', 'text-white', 'focus:border-sky-500',
-            'focus:outline-none', 'focus:ring-1', 'focus:ring-sky-500'
+          :class="cn([
+            'sticky', 'top-0', 'z-20', 'w-full', 'border-b', 'border-gray-600',
+            'bg-gray-800', 'p-3', 'text-sm', 'text-white', 'shadow-md',
+            'focus:border-sky-500', 'focus:outline-none', 'focus:ring-1',
+            'focus:ring-sky-500'
           ])"
           type="text"
           placeholder="Search posts..."
@@ -123,7 +125,7 @@
                   <span
                     x-show="open"
                     :class="cn([
-                      '...', 'absolute', '-top-[1px]', 'start-5', 'z-50',
+                      '...', 'absolute', '-top-[1px]', 'start-5', 'z-10',
                       'text-nowrap', 'rounded-lg', 'bg-black', 'px-2', 'py-1',
                       'text-xs', 'shadow-lg'
                     ])"
@@ -151,7 +153,7 @@
                   <span
                     x-show="open"
                     :class="cn([
-                      '...', 'absolute', '-top-[1px]', 'start-5', 'z-50',
+                      '...', 'absolute', '-top-[1px]', 'start-5', 'z-10',
                       'text-nowrap', 'rounded-lg', 'bg-black', 'px-2', 'py-1',
                       'text-xs', 'shadow-lg'
                     ])"
@@ -179,7 +181,7 @@
                   <span
                     x-show="open"
                     :class="cn([
-                      '...', 'absolute', '-top-[1px]', 'start-5', 'z-50',
+                      '...', 'absolute', '-top-[1px]', 'start-5', 'z-10',
                       'text-nowrap', 'rounded-lg', 'bg-black', 'px-2', 'py-1',
                       'text-xs', 'shadow-lg'
                     ])"
