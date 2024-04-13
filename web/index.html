@@ -23,13 +23,13 @@
         });
       });
 
-			var formatContent = (content) => {
-				let out = content;
-				if (out.includes("<md>")) {
-					out = marked.parse(out);
-				}
-				return `<div x-ignore>${out}</div>`;
-			}
+      var formatContent = (content) => {
+        let out = content;
+        if (out.includes("<md>")) {
+          out = marked.parse(out);
+        }
+        return `<div x-ignore>${out}</div>`;
+      };
     </script>
 
     <div id="grid-view-sidebar-and-current-post" class="grid grid-cols-4">
@@ -128,8 +128,8 @@
               id="main-post-content"
               class="space-y-2 text-sm"
               x-html="formatContent(
-								$store.data.currentPost.history[i].content
-							)"
+                $store.data.currentPost.history[i].content
+              )"
             ></span>
           </div>
 
@@ -194,8 +194,8 @@
               id="students-collective-answer-date"
               class="text-sm"
               x-html="formatContent(
-								getStudentsAnswerContent($store.data.currentPost, i)
-							)"
+                getStudentsAnswerContent($store.data.currentPost, i)
+              )"
             />
           </div>
         </div>
@@ -240,8 +240,8 @@
               id="instructors-collective-answer-content"
               class="text-wrap text-sm"
               x-html="formatContent(
-								getInstructorsAnswerContent($store.data.currentPost, i)
-							)"
+                getInstructorsAnswerContent($store.data.currentPost, i)
+              )"
             ></span>
           </div>
         </div>
