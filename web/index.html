@@ -8,6 +8,7 @@
     <script src="static/lib/marked@12.0.1.min.js"></script>
     <script src="static/lib/fuse.basic@7.0.0.min.js"></script>
     <script async src="static/lib/mathjax/load-mathjax.js"></script>
+    <script defer src="static/lib/alpine/intersect@3.18.8.min.js"></script>
     <script defer src="static/lib/alpine/alpinejs@3.13.8.min.js"></script>
   </head>
   <body>
@@ -55,16 +56,20 @@
       <div
         id="grid-column-sidebar"
         class="col-span-1 h-[100vh] overflow-y-auto bg-gray-800"
-        x-data="{ query: '' }"
+        x-data="{ query: '', posts: getPosts(), shown: 128 }"
+        x-init="$watch('query', (q) => {
+					posts = searchPosts(q);
+					shown = 128;
+				})"
       >
         <input
           id="posts-searchbar"
           class="w-full bg-gray-800 p-3 text-sm text-white"
           type="text"
           placeholder="Search posts..."
-          x-model.debounce.500ms="query"
+          x-model.debounce="query"
         />
-        <template x-data x-for="post in searchPosts(query)" :key="post.id">
+        <template x-data x-for="post in posts.slice(0, shown)" :key="post.id">
           <div
             :class="cn([
               'select-none', 'space-y-1', 'border-t', 'border-gray-600',
@@ -91,6 +96,10 @@
             </div>
           </div>
         </template>
+        <span
+					id="load-more-posts-trigger"
+					x-intersect="shown += 128"
+				></span>
       </div>
 
       <!-- main post and followups -->
@@ -133,7 +142,9 @@
           >
             <span
               id="main-post-title"
-              x-html="formatContent($store.data.currentPost.history[i].subject)"
+              x-html="formatContent(
+								$store.data.currentPost.history[i].subject
+							)"
             ></span>
             <div id="main-post-type" class="flex space-x-4">
               <span
