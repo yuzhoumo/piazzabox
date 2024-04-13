@@ -65,11 +65,11 @@ var getPostReplies = (currentPost) => {
   return children?.filter(filter) ?? [];
 };
 
-var getPostAuthor = (post, userMap) => {
-  if (post?.uid_a) {
-    return getAnonName(post.uid_a, post.id);
-  } else if (post?.uid) {
-    return userMap.get(post.uid)?.name;
+var getPostAuthor = (post, userMap, i) => {
+  if (post?.history[i].uid_a) {
+    return getAnonName(post.history[i].uid_a, post.id);
+  } else if (post?.history[i].uid) {
+    return userMap.get(post.history[i].uid)?.name;
   }
   return "";
 }

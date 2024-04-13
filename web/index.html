@@ -2,6 +2,8 @@
 <html>
   <head>
     <meta charset="UTF-8" />
+    <title>PiazzaBox Archive Viewer</title>
+    <link rel="icon" type="image/x-icon" href="static/img/favicon.ico">	
     <link rel="stylesheet" href="static/build/tailwind.css" />
     <script src="static/build/data.js"></script>
     <script src="static/lib/utils.js"></script>
@@ -17,7 +19,6 @@
       // Initialize global data in Alpine store
       document.addEventListener("alpine:initializing", async () => {
         Alpine.store("data", {
-          users: getUsers(),
           currentPost: Alpine.$persist(getPosts()[0]).using(sessionStorage),
           setCurrent(post) {
             this.currentPost = post;
@@ -59,16 +60,16 @@
         class="col-span-1 h-[100vh] overflow-y-auto bg-gray-800"
         x-data="{ query: '', posts: getPosts(), shown: 128 }"
         x-init="$watch('query', (q) => {
-					posts = searchPosts(q);
-					shown = 128;
-				})"
+          posts = searchPosts(q);
+          shown = 128;
+        })"
       >
         <input
           id="posts-searchbar"
           :class="cn(['w-full', 'border-b', 'border-gray-600', 'bg-gray-800',
             'p-3', 'text-sm', 'text-white', 'focus:border-sky-500',
             'focus:outline-none', 'focus:ring-1', 'focus:ring-sky-500'
-					])"
+          ])"
           type="text"
           placeholder="Search posts..."
           x-model.debounce="query"
@@ -107,14 +108,17 @@
       <div
         id="grid-column-current-post"
         class="col-span-3 h-[100vh] space-y-4 overflow-y-auto bg-gray-900"
-        x-data="{ i: 0 }"
+        x-init="$watch('$store.data.currentPost', (p) => { currentPost = p })"
+        x-data="{
+          currentPost: $store.data.currentPost, userMap: getUsers(), i: 0
+        }"
       >
         <!-- button for triggering latex typeset -->
         <div
           id="container-btn-typeset-latex"
           class="px-4 pt-4"
-          x-data="{ shown: containsInlineLatex($store.data.currentPost) }"
-          x-effect="shown = containsInlineLatex($store.data.currentPost)"
+          x-data="{ shown: containsInlineLatex(currentPost) }"
+          x-effect="shown = containsInlineLatex(currentPost)"
           x-show="shown"
         >
           <button
@@ -133,55 +137,42 @@
         <div
           id="main-post"
           :class="cn([
-            'mx-4', 'mt-4', 'space-y-8', 'rounded-lg', 'border',
-            'border-gray-700', 'bg-gray-800', 'p-8', 'text-white'
+            'mx-4', 'mt-4', 'rounded-lg', 'border',
+            'border-gray-700', 'bg-gray-800', 'text-white'
           ])"
         >
-          <div
-            id="main-post-header"
-            class="flex justify-between text-xl font-bold"
-          >
-            <span
-              id="main-post-title"
-              x-html="formatContent(
-                $store.data.currentPost.history[i].subject
-              )"
-            ></span>
-            <div id="main-post-type" class="flex space-x-4">
+          <div class="space-y-8 p-8">
+            <div
+              id="main-post-header"
+              class="flex justify-between text-xl font-bold"
+            >
               <span
-                class="rounded-md bg-gray-700 px-3 py-1 text-sm"
-                x-text="$store.data.currentPost.type"
+                id="main-post-title"
+                x-html="formatContent(currentPost.history[i].subject)"
               ></span>
+              <div id="main-post-type" class="flex space-x-4">
+                <span
+                  class="rounded-md bg-gray-700 px-3 py-1 text-sm"
+                  x-text="currentPost.type"
+                ></span>
+                <span
+                  id="main-post-viewcount"
+                  class="rounded-md bg-gray-700 px-2 py-1 text-sm"
+                  x-text="currentPost.unique_views + ' views'"
+                ></span>
+              </div>
+            </div>
+
+            <div id="main-post-body" class="overflow-x-auto">
               <span
-                id="main-post-viewcount"
-                class="rounded-md bg-gray-700 px-2 py-1 text-sm"
-                x-text="$store.data.currentPost.unique_views + ' views'"
+                id="main-post-content"
+                class="space-y-2 text-sm"
+                x-html="formatContent(currentPost.history[i].content)"
               ></span>
             </div>
-          </div>
 
-          <div id="main-post-body" class="overflow-x-auto">
-            <span
-              id="main-post-content"
-              class="space-y-2 text-sm"
-              x-html="formatContent(
-                $store.data.currentPost.history[i].content
-              )"
-            ></span>
-          </div>
-
-          <div
-            id="main-post-footer"
-            class="flex justify-between align-text-bottom text-xs"
-          >
-            <span
-              id="main-post-likes"
-              class="text-blue-300"
-              x-text="'good ' + $store.data.currentPost.type + ' | ' +
-                $store.data.currentPost.tag_good.length"
-            ></span>
-            <div id="main-post-tags" class="space-x-2">
-              <template x-for="tag in $store.data.currentPost.tags">
+            <div id="main-post-tags" class="-ml-2 flex space-x-2 text-xs">
+              <template x-for="tag in currentPost.tags">
                 <span
                   class="rounded-md bg-blue-400 px-2 py-1 text-blue-900"
                   x-text="tag"
@@ -189,96 +180,139 @@
               </template>
             </div>
           </div>
+
+          <div
+            id="main-post-footer"
+            :class="cn([
+              'flex', 'w-full', 'justify-between', 'border-t',
+              'border-gray-700', 'px-4', 'py-2', 'align-middle'
+            ])"
+          >
+            <span
+              id="main-post-likes"
+              class="text-xs text-blue-300"
+              x-text="'good ' + currentPost.type + ' | ' +
+                currentPost.tag_good.length
+              "
+            ></span>
+            <span
+              class="text-xs"
+              x-html="
+                'Last updated ' + formatDate(currentPost.history[i].created) +
+                ' by <b>' + getPostAuthor(currentPost, userMap, i) +
+                '</b>'
+              "
+            ></span>
+          </div>
         </div>
 
         <!-- collective student answer -->
         <div
           id="students-collective-answer"
+          x-show="Boolean(getStudentsAnswer(currentPost, i))"
+          x-data="{ answer: getStudentsAnswer(currentPost, i) }"
           :class="cn([
             'mx-4', 'space-y-4', 'rounded-lg', 'border', 'border-gray-700',
-            'bg-gray-800', 'p-8', 'text-white'
+            'bg-gray-800', 'text-white'
           ])"
-          x-show="Boolean(getStudentsAnswer($store.data.currentPost, i))"
-          x-data
         >
-          <h1
-            id="students-collective-answer-header"
-            :class="cn([
-              'text-xl', 'font-bold', 'underline', 'decoration-yellow-500',
-              'decoration-solid'
-            ])"
-          >
-            the students&apos; answer
-          </h1>
-          <div
-            id="students-collective-answer-body"
-            class="space-y-1 overflow-x-auto"
-          >
-            <div class="flex gap-x-2 text-sm">
-              <span
-                id="students-collective-answer-last-author"
-                class="font-bold"
-                x-text="getStudentsAnswerAuthor(
-                  $store.data.currentPost, $store.data.users, i
-                )"
-              ></span>
+          <div class="space-y-4 px-8 pb-4 pt-8">
+            <div id="students-collective-answer-header">
+              <h1
+                :class="cn([
+                  'text-xl', 'font-bold', 'underline',
+                  'decoration-green-500', 'decoration-solid'
+                ])"
+              >
+                the students&apos; answer
+              </h1>
+            </div>
+            <div id="students-collective-answer-body" class="overflow-x-auto">
               <span
                 id="students-collective-answer-content"
-                x-text="getStudentsAnswerDate($store.data.currentPost, i)"
-              ></span>
+                class="text-sm"
+                x-html="formatContent(
+                  getStudentsAnswerContent(currentPost, i)
+                )"
+              />
             </div>
+          </div>
+          <div
+            id="students-collective-answer-footer"
+            :class="cn([
+              'flex', 'w-full', 'justify-between', 'border-t',
+              'border-gray-700', 'px-4', 'py-2', 'align-middle'
+            ])"
+          >
             <span
-              id="students-collective-answer-date"
-              class="text-sm"
-              x-html="formatContent(
-                getStudentsAnswerContent($store.data.currentPost, i)
-              )"
-            />
+              class="text-xs text-blue-300"
+              x-text="`thanks! | ${ answer?.tag_good?.length ?? 0 }`"
+            ></span>
+            <span
+              class="text-xs"
+              x-html="
+                'Last updated ' +
+                getStudentsAnswerDate(currentPost, i) + ' by <b>' +
+                getStudentsAnswerAuthor(currentPost, userMap, i) +
+               '</b>'
+              "
+            ></span>
           </div>
         </div>
 
         <!-- collective instructor answer -->
         <div
-          id="instructors-collective-answer"
+          id="instuctors-collective-answer"
+          x-show="Boolean(getInstructorsAnswer(currentPost, i))"
+          x-data="{ answer: getInstructorsAnswer(currentPost, i) }"
           :class="cn([
             'mx-4', 'space-y-4', 'rounded-lg', 'border', 'border-gray-700',
-            'bg-gray-800', 'p-8', 'text-white'
+            'bg-gray-800', 'text-white'
           ])"
-          x-show="Boolean(getInstructorsAnswer($store.data.currentPost, i))"
-          x-data
         >
-          <h1
-            id="instructors-collective-answer-header"
+          <div class="space-y-4 px-8 pb-4 pt-8">
+            <div id="instructors-collective-answer-header">
+              <h1
+                :class="cn([
+                  'text-xl', 'font-bold', 'underline',
+                  'decoration-yellow-500', 'decoration-solid'
+                ])"
+              >
+                the instructors&apos; answer
+              </h1>
+            </div>
+            <div
+              id="instructors-collective-answer-body"
+              class="overflow-x-auto"
+            >
+              <span
+                id="instructors-collective-answer-content"
+                class="text-sm"
+                x-html="formatContent(
+                  getInstructorsAnswerContent(currentPost, i)
+                )"
+              />
+            </div>
+          </div>
+          <div
+            id="instructors-collective-answer-footer"
             :class="cn([
-              'text-xl', 'font-bold', 'underline', 'decoration-yellow-500',
-              'decoration-solid'
+              'flex', 'w-full', 'justify-between', 'border-t',
+              'border-gray-700', 'px-4', 'py-2', 'align-middle'
             ])"
           >
-            the instructors&apos; answer
-          </h1>
-          <div
-            id="instructors-collective-answer-body"
-            class="space-y-1 overflow-x-auto"
-          >
-            <div class="flex gap-x-2 text-sm">
-              <span
-                id="instructors-collective-answer-last-author"
-                class="font-bold"
-                x-text="getInstructorsAnswerAuthor(
-                  $store.data.currentPost, $store.data.users, i
-                )"
-              ></span>
-              <span
-                id="instructors-collective-answer-date"
-                x-text="getInstructorsAnswerDate($store.data.currentPost, i)"
-              ></span>
-            </div>
             <span
-              id="instructors-collective-answer-content"
-              class="text-wrap text-sm"
-              x-html="formatContent(
-                getInstructorsAnswerContent($store.data.currentPost, i)
-              )"
+              class="text-xs text-blue-300"
+              x-text="`thanks! | ${ answer?.tag_good?.length ?? 0 }`"
+            ></span>
+            <span
+              class="text-xs"
+              x-html="
+                'Last updated ' + getInstructorsAnswerDate(currentPost, i) +
+               ' by <b>' +
+                getInstructorsAnswerAuthor(currentPost, userMap, i) +
+                '</b>'
+              "
             ></span>
           </div>
         </div>
@@ -290,7 +324,7 @@
             'mx-4', 'space-y-4', 'rounded-lg', 'border', 'border-gray-700',
             'bg-gray-800', 'p-8', 'text-white'
           ])"
-          x-show="getPostReplies($store.data.currentPost).length > 0"
+          x-show="getPostReplies(currentPost).length > 0"
           x-data
         >
           <h1
@@ -305,7 +339,7 @@
 
           <!-- followup discussions -->
           <template
-            x-for="followup in getPostReplies($store.data.currentPost)"
+            x-for="followup in getPostReplies(currentPost)"
             :key="followup.id"
           >
             <div
@@ -321,8 +355,8 @@
                   class="mt-1 h-10 w-10 border border-gray-500"
                   :src="
                     fIsAnon ? (
-                      getAnonIcon(fuid, $store.data.currentPost.id)
-                    ) : getUserIcon(fuid, $store.data.users)
+                      getAnonIcon(fuid, currentPost.id)
+                    ) : getUserIcon(fuid, userMap)
                   "
                 />
                 <div class="space-y-1 overflow-x-auto">
@@ -330,9 +364,8 @@
                     <span
                       class="font-bold"
                       x-text="
-                        fIsAnon ? (
-                          getAnonName(fuid, $store.data.currentPost.id)
-                        ) : $store.data.users.get(fuid)?.name
+                        fIsAnon ? (getAnonName(fuid, currentPost.id)) :
+                        userMap.get(fuid)?.name
                       "
                     ></span>
                     <span x-text="formatDate(followup.created)"></span>
@@ -368,9 +401,8 @@
                     <img
                       class="mt-1 h-10 w-10 border border-gray-500"
                       :src="
-                        isAnon ? (
-                          getAnonIcon(uid, $store.data.currentPost.id)
-                         ) : getUserIcon(uid, $store.data.users)
+                        isAnon ? getAnonIcon(uid, currentPost.id) :
+                       getUserIcon(uid, userMap)
                       "
                     />
                     <div class="space-y-1 overflow-x-auto">
@@ -379,11 +411,8 @@
                           class="font-bold"
                           x-text="
                             isAnon ? (
-                              getAnonName(
-                                reply.uid_a,
-                                $store.data.currentPost.id
-                              )
-                            ) : $store.data.users.get(uid)?.name
+                              getAnonName(reply.uid_a, currentPost.id)
+                            ) : userMap.get(uid)?.name
                           "
                         ></span>
                         <span x-text="formatDate(reply.created)"></span>
