@@ -419,13 +419,13 @@ def build_site(out_dir: str):
         raise FileNotFoundError("web directory not found")
     shutil.copy(f"{WEB_DIR}/index.html", f"{out_dir}/index.html")
     shutil.copytree(f"{WEB_DIR}/static", f"{out_dir}/static")
-    with open (f"{WEB_DIR}/static/lib/generated-data.js.template") as f:
+    with open (f"{WEB_DIR}/static/build/data.js.template") as f:
         template = f.read()
     with open(f"{out_dir}/assets/posts.json", "r") as f:
         template = template.replace(POSTS_TEMPLATE_STR, f.read())
     with open(f"{out_dir}/assets/users.json", "r") as f:
         template = template.replace(USERS_TEMPLATE_STR, f.read())
-    with open(f"{out_dir}/static/lib/generated-data.js", "w") as f:
+    with open(f"{out_dir}/static/build/data.js", "w") as f:
         f.write(template)
     print(f"{Color.GREEN}Successfully built site")
 
