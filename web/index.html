@@ -18,7 +18,7 @@
       document.addEventListener("alpine:initializing", async () => {
         Alpine.store("data", {
           users: getUsers(),
-          currentPost: Alpine.$persist(getPosts()[0]),
+          currentPost: Alpine.$persist(getPosts()[0]).using(sessionStorage),
           setCurrent(post) {
             this.currentPost = post;
           },
