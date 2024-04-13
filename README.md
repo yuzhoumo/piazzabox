@@ -11,8 +11,8 @@ Built with Python and Alpine.js + Tailwind.
 
 - Archives course info and posts to json files
 - Downloads file attachments and user profile photos
-- Generates an offline-viewable webpage for each archived course
-- Generated webpages display images, markdown, and math notations (LaTeX)
+- Generates an offline, searchable webpage for each archived course
+- Webpages properly display markdown and math notations (LaTeX)
 - Anonymous usernames are correctly generated (matches what's shown on Piazza)
 
 ### Installation
