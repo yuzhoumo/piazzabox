@@ -65,7 +65,10 @@
       >
         <input
           id="posts-searchbar"
-          class="w-full bg-gray-800 p-3 text-sm text-white"
+          :class="cn(['w-full', 'border-b', 'border-gray-600', 'bg-gray-800',
+            'p-3', 'text-sm', 'text-white', 'focus:border-sky-500',
+            'focus:outline-none', 'focus:ring-1', 'focus:ring-sky-500'
+					])"
           type="text"
           placeholder="Search posts..."
           x-model.debounce="query"
@@ -73,7 +76,7 @@
         <template x-data x-for="post in posts.slice(0, shown)" :key="post.id">
           <div
             :class="cn([
-              'select-none', 'space-y-1', 'border-t', 'border-gray-600',
+              'select-none', 'space-y-1', 'border-b', 'border-gray-600',
               'bg-gray-700', 'p-4', 'text-gray-200', 'hover:bg-gray-600'
             ])"
             x-data="{ mostRecentEdit: post.history[0] }"
@@ -141,8 +144,8 @@
             <span
               id="main-post-title"
               x-html="formatContent(
-								$store.data.currentPost.history[i].subject
-							)"
+                $store.data.currentPost.history[i].subject
+              )"
             ></span>
             <div id="main-post-type" class="flex space-x-4">
               <span
