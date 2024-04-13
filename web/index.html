@@ -369,6 +369,18 @@
                 <div class="space-y-1 overflow-x-auto">
                   <div class="flex gap-x-2 text-sm">
                     <span
+                      id="instructor-tag"
+                      :class="cn([
+                        'ml-[2px]', 'mt-[2px]', 'flex', 'h-[18px]', 'w-[15px]',
+                        'justify-center', 'rounded-sm', 'bg-yellow-500',
+                        'text-xs', 'font-black'
+                      ])"
+                      x-show="
+                        !fIsAnon && userMap.get(fuid).role === 'instructor'
+                      "
+                      >i</span
+                    >
+                    <span
                       class="font-bold"
                       x-text="
                         fIsAnon ? (getAnonName(fuid, currentPost.id)) :
@@ -414,6 +426,18 @@
                     />
                     <div class="space-y-1 overflow-x-auto">
                       <div class="flex gap-x-2 text-sm">
+                        <span
+                          id="instructor-tag"
+                          :class="cn([
+                            'ml-[2px]', 'mt-[2px]', 'flex', 'h-[18px]',
+                            'w-[15px]', 'justify-center', 'rounded-sm',
+                            'bg-yellow-500', 'text-xs', 'font-black'
+                          ])"
+                          x-show="
+                            !isAnon && userMap.get(uid).role === 'instructor'
+                          "
+                          >i</span
+                        >
                         <span
                           class="font-bold"
                           x-text="
