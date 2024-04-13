@@ -74,11 +74,13 @@
           placeholder="Search posts..."
           x-model.debounce="query"
         />
+
         <template x-data x-for="post in posts.slice(0, shown)" :key="post.id">
           <div
             :class="cn([
               'select-none', 'space-y-1', 'border-b', 'border-gray-600',
-              'bg-gray-700', 'p-4', 'text-gray-200', 'hover:bg-gray-600'
+              'bg-gray-700', 'px-5', 'py-4', 'text-gray-200',
+              'hover:bg-gray-600'
             ])"
             x-data="{ mostRecentEdit: post.history[0] }"
             x-on:click="$store.data.setCurrent(post);"
@@ -93,15 +95,104 @@
                 x-text="formatDate(mostRecentEdit.created)"
               ></span>
             </div>
-            <div class="pointer-events-none h-12 overflow-hidden">
-              <span
-                class="text-xs"
-                x-html="formatContent(mostRecentEdit.content)"
-              ></span>
+            <div class="flex w-full justify-between">
+              <div class="pointer-events-none h-12 overflow-hidden">
+                <span
+                  class="text-xs"
+                  x-html="formatContent(mostRecentEdit.content)"
+                ></span>
+              </div>
+
+              <div class="flex min-w-16 justify-end">
+                <span
+                  x-data="{ open: false }"
+                  x-on:mouseover="open = true"
+                  x-on:mouseout="open = false"
+                  class="relative"
+                  dir="rtl"
+                >
+                  <span
+                    :class="cn([
+                      'select-none', 'ml-[2px]', 'mt-[2px]', 'flex',
+                      'h-[18px]', 'min-w-[15px]', 'justify-center',
+                      'rounded-sm', 'bg-green-500', 'text-xs', 'font-bold'
+                    ])"
+                    x-show="Boolean(getStudentsAnswer(post, 0))"
+                    >s</span
+                  >
+                  <span
+                    x-show="open"
+                    :class="cn([
+                      '...', 'absolute', '-top-[1px]', 'start-5', 'z-50',
+                      'text-nowrap', 'rounded-lg', 'bg-black', 'px-2', 'py-1',
+                      'text-xs', 'shadow-lg'
+                    ])"
+                  >
+                    Has students' answer
+                  </span>
+                </span>
+
+                <span
+                  x-data="{ open: false }"
+                  x-on:mouseover="open = true"
+                  x-on:mouseout="open = false"
+                  class="relative"
+                  dir="rtl"
+                >
+                  <span
+                    :class="cn([
+                      'select-none', 'ml-[2px]', 'mt-[2px]', 'flex',
+                      'h-[18px]', 'min-w-[15px]', 'justify-center',
+                      'rounded-sm', 'bg-yellow-500', 'text-xs', 'font-bold'
+                    ])"
+                    x-show="Boolean(getInstructorsAnswer(post, 0))"
+                    >i</span
+                  >
+                  <span
+                    x-show="open"
+                    :class="cn([
+                      '...', 'absolute', '-top-[1px]', 'start-5', 'z-50',
+                      'text-nowrap', 'rounded-lg', 'bg-black', 'px-2', 'py-1',
+                      'text-xs', 'shadow-lg'
+                    ])"
+                  >
+                    Has instructors' answer
+                  </span>
+                </span>
+
+                <span
+                  x-data="{ open: false }"
+                  x-on:mouseover="open = true"
+                  x-on:mouseout="open = false"
+                  class="relative"
+                  dir="rtl"
+                >
+                  <span
+                    :class="cn([
+                      'select-none', 'ml-[2px]', 'mt-[2px]', 'flex',
+                      'h-[18px]', 'min-w-[15px]', 'justify-center',
+                      'rounded-sm', 'bg-gray-500', 'text-xs', 'font-bold'
+                    ])"
+                    x-show="post.type === 'note'"
+                    >&#8801;</span
+                  >
+                  <span
+                    x-show="open"
+                    :class="cn([
+                      '...', 'absolute', '-top-[1px]', 'start-5', 'z-50',
+                      'text-nowrap', 'rounded-lg', 'bg-black', 'px-2', 'py-1',
+                      'text-xs', 'shadow-lg'
+                    ])"
+                  >
+                    This is a note
+                  </span>
+                </span>
+              </div>
             </div>
           </div>
         </template>
         <span id="load-more-posts-trigger" x-intersect="shown += 128"></span>
+
         <span
           id="nothing-found"
           class="flex select-none justify-center py-8 text-lg text-gray-300"
@@ -369,11 +460,10 @@
                 <div class="space-y-1 overflow-x-auto">
                   <div class="flex gap-x-2 text-sm">
                     <span
-                      id="instructor-tag"
                       :class="cn([
-                        'ml-[2px]', 'mt-[2px]', 'flex', 'h-[18px]', 'w-[15px]',
-                        'justify-center', 'rounded-sm', 'bg-yellow-500',
-                        'text-xs', 'font-black'
+                        'select-none','ml-[2px]', 'mt-[2px]', 'flex',
+                        'h-[18px]', 'w-[15px]', 'justify-center',
+                        'rounded-sm', 'bg-yellow-500', 'text-xs', 'font-black'
                       ])"
                       x-show="
                         !fIsAnon && userMap.get(fuid).role === 'instructor'
@@ -427,7 +517,6 @@
                     <div class="space-y-1 overflow-x-auto">
                       <div class="flex gap-x-2 text-sm">
                         <span
-                          id="instructor-tag"
                           :class="cn([
                             'ml-[2px]', 'mt-[2px]', 'flex', 'h-[18px]',
                             'w-[15px]', 'justify-center', 'rounded-sm',
