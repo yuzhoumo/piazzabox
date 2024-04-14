@@ -1,11 +1,13 @@
 # Piazzabox
 
+<div style="text-align:center"><img src=".github/logo.svg" /></div>
+
 Piazzabox is an archiver for Piazza courses. Piazzabox saves posts and linked
 assets from Piazza and generates a static site for local viewing.
 
 Built with Python and Alpine.js + Tailwind.
 
-![screenshot](screenshot.png)
+![screenshot](.github/screenshot.png)
 
 ### Features
 
