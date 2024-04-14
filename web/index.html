@@ -126,12 +126,12 @@
                 >
                   <!-- sidebar item tag: "has students' answer" -->
                   <span
-                    :class="cn([
-                      'select-none', 'ml-[2px]', 'mt-[2px]', 'flex',
-                      'min-h-[18px]', 'min-w-[15px]', 'justify-center',
-                      'rounded-sm', 'bg-green-500', 'text-xs', 'font-extrabold'
-                    ])"
                     x-show="Boolean(getStudentsAnswer(post, 0))"
+                    :class="cn([
+                      'ml-[2px]', 'mt-[2px]', 'flex', 'h-[18px]',
+                      'w-[15px]', 'justify-center', 'rounded-sm',
+                      'bg-green-500', 'text-xs', 'font-black'
+                    ])"
                     >s</span
                   >
                   <span
@@ -155,13 +155,12 @@
                   dir="rtl"
                 >
                   <span
-                    :class="cn([
-                      'select-none', 'ml-[2px]', 'mt-[2px]', 'flex',
-                      'min-h-[18px]', 'min-w-[15px]', 'justify-center',
-                      'rounded-sm', 'bg-yellow-500', 'text-xs',
-                      'font-extrabold'
-                    ])"
                     x-show="Boolean(getInstructorsAnswer(post, 0))"
+                    :class="cn([
+                      'ml-[2px]', 'mt-[2px]', 'flex', 'h-[18px]',
+                      'w-[15px]', 'justify-center', 'rounded-sm',
+                      'bg-yellow-500', 'text-xs', 'font-extrabold'
+                    ])"
                     >i</span
                   >
                   <span
@@ -186,9 +185,9 @@
                 >
                   <span
                     :class="cn([
-                      'select-none', 'ml-[2px]', 'mt-[2px]', 'flex',
-                      'min-h-[18px]', 'min-w-[15px]', 'justify-center',
-                      'rounded-sm', 'bg-gray-500', 'text-xs', 'font-bold'
+                      'ml-[2px]', 'mt-[2px]', 'flex', 'h-[18px]',
+                      'w-[15px]', 'justify-center', 'rounded-sm',
+                      'bg-gray-500', 'text-xs', 'font-extrabold'
                     ])"
                     x-show="post.type === 'note'"
                     >&#8801;</span
@@ -564,14 +563,14 @@
                   <div class="flex gap-x-2 text-sm">
                     <!-- comment instructor tag -->
                     <span
-                      :class="cn([
-                        'select-none','ml-[2px]', 'mt-[2px]', 'flex',
-                        'h-[18px]', 'w-[15px]', 'justify-center',
-                        'rounded-sm', 'bg-yellow-500', 'text-xs', 'font-black'
-                      ])"
                       x-show="
                         !fIsAnon && userMap.get(fuid).role === 'instructor'
                       "
+                      :class="cn([
+                        'ml-[2px]', 'mt-[2px]', 'flex', 'h-[18px]',
+                        'w-[15px]', 'justify-center', 'rounded-sm',
+                        'bg-yellow-500', 'text-xs', 'font-black'
+                      ])"
                       >i</span
                     >
 
