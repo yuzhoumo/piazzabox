@@ -6,6 +6,23 @@ var containsInlineLatex = (post) => {
   return JSON.stringify(post).includes("$$");
 }
 
+var getInstructorEndorsers = (post) => {
+  const filterFunc = t => (t.role === "ta" || t.role === "instructor")
+  if (post?.tag_good) {
+    return post.tag_good.filter(filterFunc);
+  } else if (post?.tag_endorse) {
+    return post.tag_endorse.filter(filterFunc);
+  }
+  return [];
+}
+
+var endorsementMessage = (endorsers, type) => {
+  if (endorsers?.length > 0) {
+	  return `~ An instructor (${endorsers[0].name}) endorsed this ${type} ~`;
+  }
+  return "";
+}
+
 var getAnonProfile = (anonUID, postID) => {
   const anonNames = [
     { icon: "anon_icon-01.jpg", name: "Atom"   },
@@ -27,7 +44,7 @@ var getAnonProfile = (anonUID, postID) => {
   const i = rand % anonNames.length;
   const name = anonNames[i].name + (repeatNum ? " " + (repeatNum + 1) : "");
   return {
-    icon: "static/img/" + anonNames[i].icon,
+    icon: "static/lib/img/" + anonNames[i].icon,
     name: "Anonymous "  + name,
   };
 }
@@ -42,7 +59,7 @@ var getAnonIcon = (anonUID, postID) => {
 
 var getUserIcon = (uid, userMap) => {
   const filename = userMap.get(uid)?.photo;
-  return filename ? `assets/photos/${filename}` : "static/img/default.svg";
+  return filename ? `assets/photos/${filename}` : "static/lib/img/default.svg";
 }
 
 var formatDate = (dateStr) => {
@@ -53,10 +70,10 @@ var formatDate = (dateStr) => {
   return `${month}/${day}/${year}`;
 };
 
-var getPostAnswer = (currentPost, type, index) => {
+var getPostAnswer = (currentPost, type) => {
   const children = currentPost?.children;
   const postAnswer = children?.filter((c) => c.type === type);
-  return postAnswer?.length > 0 ? postAnswer[0].history[index] : null;
+  return postAnswer?.length > 0 ? postAnswer[0] : null;
 };
 
 var getPostReplies = (currentPost) => {
@@ -75,7 +92,7 @@ var getPostAuthor = (post, userMap, i) => {
 }
 
 var getInstructorsAnswer = (currentPost, index) => {
-  return getPostAnswer(currentPost, "i_answer", index);
+  return getPostAnswer(currentPost, "i_answer")?.history[index] ?? null;
 };
 
 var getInstructorsAnswerContent = (currentPost, index) => {
@@ -96,7 +113,7 @@ var getInstructorsAnswerAuthor = (currentPost, userMap, index) => {
 };
 
 var getStudentsAnswer = (currentPost, index) => {
-  return getPostAnswer(currentPost, "s_answer", index);
+  return getPostAnswer(currentPost, "s_answer")?.history[index] ?? null;
 };
 
 var getStudentsAnswerContent = (currentPost, index) => {
