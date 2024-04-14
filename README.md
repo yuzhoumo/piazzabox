@@ -1,4 +1,4 @@
-<div style="text-align:center"><img src=".github/logo.svg" /></div>
+<img src=".github/logo.svg" alt="Piazzabox logo" />
 <br />
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
@@ -10,7 +10,7 @@ Built with Python and Alpine.js + Tailwind.
 
 ![screenshot](.github/screenshot.png)
 
-### Features
+## Features
 
 - Archives course info and posts to json files
 - Downloads file attachments and user profile photos
@@ -18,7 +18,7 @@ Built with Python and Alpine.js + Tailwind.
 - Webpages properly display both markdown and math notations (LaTeX)
 - Anonymous usernames are correctly generated (matches what's shown on Piazza)
 
-### Installation
+## Installation
 
 ```sh
 python3 -m venv venv
@@ -26,7 +26,7 @@ source ./venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Usage
+## Usage
 
 1. Run `python3 piazzabox.py` and enter your login credentials.
 2. Choose Piazza courses to archive.
@@ -39,7 +39,7 @@ in your Piazza email and password to keep your login credentials saved.
 If Piazzabox fails due to network errors or is otherwise interrupted while
 archiving, restart the program and it will pick up where it left off.
 
-### Development
+## Development
 
 There is no need to install dev dependencies for the webpage unless you are
 making changes to it. Use the following to install dev dependencies:
