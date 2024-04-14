@@ -1,9 +1,10 @@
-# Piazzabox
-
 <div style="text-align:center"><img src=".github/logo.svg" /></div>
+<br />
 
-Piazzabox is an archiver for Piazza courses. Piazzabox saves posts and linked
-assets from Piazza and generates a static site for local viewing.
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
+
+Piazzabox is an archiver for Piazza courses. Save posts and file attachments
+from Piazza and generate static sites for local viewing!
 
 Built with Python and Alpine.js + Tailwind.
 
@@ -14,7 +15,7 @@ Built with Python and Alpine.js + Tailwind.
 - Archives course info and posts to json files
 - Downloads file attachments and user profile photos
 - Generates an offline, searchable webpage for each archived course
-- Webpages properly display markdown and math notations (LaTeX)
+- Webpages properly display both markdown and math notations (LaTeX)
 - Anonymous usernames are correctly generated (matches what's shown on Piazza)
 
 ### Installation
