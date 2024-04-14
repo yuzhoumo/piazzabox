@@ -1,5 +1,4 @@
 <img src=".github/logo.svg" alt="Piazzabox logo" />
-<br />
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 
