@@ -49,3 +49,8 @@ pnpm install
 # Important: Run after making changes to re-build tailwind css
 # pnpm run build
 ```
+
+## Acknowledgements
+
+- [Unofficial Piazza API](https://github.com/hfaran/piazza-api)
+- [Inspired by Ben Cuan's archive script](https://github.com/64bitpandas/piazza-archiver)
