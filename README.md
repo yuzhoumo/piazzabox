@@ -44,10 +44,10 @@ There is no need to install dev dependencies for the webpage unless you are
 making changes to it. Use the following to install dev dependencies:
 
 ```sh
-cd viewer
-pnpm install
+cd web
+npm install
 # Important: Run after making changes to re-build tailwind css
-# pnpm run build
+# npm run build
 ```
 
 ## Acknowledgements
